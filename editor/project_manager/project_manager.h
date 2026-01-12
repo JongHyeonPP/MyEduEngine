@@ -277,6 +277,9 @@ public:
 	bool is_initialized() const { return initialized; }
 	LineEdit *get_search_box();
 
+	// DORO: Expose create button for CTA card click handling
+	Button *get_create_button() { return create_btn; }
+
 	// Project tag management.
 
 	void add_new_tag(const String &p_tag);

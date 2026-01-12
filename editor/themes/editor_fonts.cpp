@@ -38,6 +38,14 @@
 #include "scene/resources/font.h"
 #include "scene/scene_string_names.h"
 
+// DORO: Embedded Korean font
+#include "editor/project_manager/doro_font_bold_data.gen.h"
+#include "editor/project_manager/doro_font_data.gen.h"
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 Ref<FontFile> load_external_font(const String &p_path, TextServer::Hinting p_hinting, TextServer::FontAntialiasing p_aa, bool p_autohint, TextServer::SubpixelPositioning p_font_subpixel_positioning, bool p_font_disable_embedded_bitmaps, bool p_msdf = false, TypedArray<Font> *r_fallbacks = nullptr) {
 	Ref<FontFile> font;
 	font.instantiate();
@@ -51,6 +59,8 @@ Ref<FontFile> load_external_font(const String &p_path, TextServer::Hinting p_hin
 	font->set_force_autohinter(p_autohint);
 	font->set_subpixel_positioning(p_font_subpixel_positioning);
 	font->set_disable_embedded_bitmaps(p_font_disable_embedded_bitmaps);
+	// DORO: Disable system fallback to prevent overriding with system fonts
+	font->set_allow_system_fallback(false);
 
 	if (r_fallbacks != nullptr) {
 		r_fallbacks->push_back(font);
@@ -82,13 +92,21 @@ Ref<FontFile> load_internal_font(const uint8_t *p_data, size_t p_size, TextServe
 	Ref<FontFile> font;
 	font.instantiate();
 
-	font->set_data_ptr(p_data, p_size);
+	// DORO: Use set_data with explicit copy for WASM compatibility
+	PackedByteArray font_bytes;
+	font_bytes.resize(p_size);
+	memcpy(font_bytes.ptrw(), p_data, p_size);
+
+	font->set_data(font_bytes);
+
 	font->set_multichannel_signed_distance_field(p_msdf);
 	font->set_antialiasing(p_aa);
 	font->set_hinting(p_hinting);
 	font->set_force_autohinter(p_autohint);
 	font->set_subpixel_positioning(p_font_subpixel_positioning);
 	font->set_disable_embedded_bitmaps(p_font_disable_embedded_bitmaps);
+	// DORO: Disable system fallback to prevent overriding with system fonts
+	font->set_allow_system_fallback(false);
 
 	if (r_fallbacks != nullptr) {
 		r_fallbacks->push_back(font);
@@ -153,8 +171,13 @@ void editor_register_fonts(const Ref<Theme> &p_theme) {
 	const int default_font_size = int(EDITOR_GET("interface/editor/main_font_size")) * EDSCALE;
 	const float embolden_strength = 0.6;
 
-	Ref<Font> default_font = load_internal_font(_font_NotoSans_Regular, _font_NotoSans_Regular_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false);
-	Ref<Font> default_font_msdf = load_internal_font(_font_NotoSans_Regular, _font_NotoSans_Regular_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, font_allow_msdf);
+	// DORO: Use Korean font as default, with NotoSans as fallback for non-Korean characters
+	Ref<Font> default_font = load_internal_font(doro_font_data, doro_font_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false);
+	Ref<Font> default_font_msdf = load_internal_font(doro_font_data, doro_font_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, font_allow_msdf);
+
+	// Original NotoSans fonts as fallbacks
+	Ref<Font> noto_font = load_internal_font(_font_NotoSans_Regular, _font_NotoSans_Regular_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false);
+	Ref<Font> noto_font_msdf = load_internal_font(_font_NotoSans_Regular, _font_NotoSans_Regular_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, font_allow_msdf);
 
 	String noto_cjk_path;
 	String noto_cjk_bold_path;
@@ -169,6 +192,9 @@ void editor_register_fonts(const Ref<Theme> &p_theme) {
 	}
 
 	TypedArray<Font> fallbacks;
+
+	// DORO Korean font is the primary font, no NotoSans fallback to avoid overriding Korean glyphs
+
 	Ref<FontFile> arabic_font = load_internal_font(_font_Vazirmatn_Regular, _font_Vazirmatn_Regular_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false, &fallbacks);
 	Ref<FontFile> bengali_font = load_internal_font(_font_NotoSansBengaliUI_Regular, _font_NotoSansBengaliUI_Regular_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false, &fallbacks);
 	Ref<FontFile> devanagari_font = load_internal_font(_font_NotoSansDevanagariUI_Regular, _font_NotoSansDevanagariUI_Regular_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false, &fallbacks);
@@ -180,18 +206,23 @@ void editor_register_fonts(const Ref<Theme> &p_theme) {
 	Ref<FontFile> tamil_font = load_internal_font(_font_NotoSansTamilUI_Regular, _font_NotoSansTamilUI_Regular_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false, &fallbacks);
 	Ref<FontFile> telugu_font = load_internal_font(_font_NotoSansTeluguUI_Regular, _font_NotoSansTeluguUI_Regular_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false, &fallbacks);
 	Ref<FontFile> thai_font = load_internal_font(_font_NotoSansThai_Regular, _font_NotoSansThai_Regular_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false, &fallbacks);
-	if (!noto_cjk_path.is_empty()) {
-		load_external_font(noto_cjk_path, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false, &fallbacks);
-	}
-	Ref<FontFile> fallback_font = load_internal_font(_font_DroidSansFallback, _font_DroidSansFallback_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false, &fallbacks);
-	Ref<FontFile> japanese_font = load_internal_font(_font_DroidSansJapanese, _font_DroidSansJapanese_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false, &fallbacks);
+	// DORO: Do NOT add Noto CJK, DroidSansFallback, or DroidSansJapanese to fallbacks - they contain Korean glyphs that override DORO font
+	// Note: Removed noto_cjk_path, fallback_font, and japanese_font from fallbacks
 	default_font->set_fallbacks(fallbacks);
 	default_font_msdf->set_fallbacks(fallbacks);
 
-	Ref<FontFile> default_font_bold = load_internal_font(_font_NotoSans_Bold, _font_NotoSans_Bold_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false);
-	Ref<FontFile> default_font_bold_msdf = load_internal_font(_font_NotoSans_Bold, _font_NotoSans_Bold_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, font_allow_msdf);
+	// DORO: Use Korean Bold font as default bold
+	Ref<FontFile> default_font_bold = load_internal_font(doro_font_bold_data, doro_font_bold_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false);
+	Ref<FontFile> default_font_bold_msdf = load_internal_font(doro_font_bold_data, doro_font_bold_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, font_allow_msdf);
+
+	// Original NotoSans Bold as fallback
+	Ref<FontFile> noto_font_bold = load_internal_font(_font_NotoSans_Bold, _font_NotoSans_Bold_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false);
+	Ref<FontFile> noto_font_bold_msdf = load_internal_font(_font_NotoSans_Bold, _font_NotoSans_Bold_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, font_allow_msdf);
 
 	TypedArray<Font> fallbacks_bold;
+
+	// DORO Bold is the primary font, no NotoSans Bold fallback
+
 	Ref<FontFile> arabic_font_bold = load_internal_font(_font_Vazirmatn_Bold, _font_Vazirmatn_Bold_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false, &fallbacks_bold);
 	Ref<FontFile> bengali_font_bold = load_internal_font(_font_NotoSansBengaliUI_Bold, _font_NotoSansBengaliUI_Bold_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false, &fallbacks_bold);
 	Ref<FontFile> devanagari_font_bold = load_internal_font(_font_NotoSansDevanagariUI_Bold, _font_NotoSansDevanagariUI_Bold_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false, &fallbacks_bold);
@@ -203,11 +234,11 @@ void editor_register_fonts(const Ref<Theme> &p_theme) {
 	Ref<FontFile> tamil_font_bold = load_internal_font(_font_NotoSansTamilUI_Bold, _font_NotoSansTamilUI_Bold_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false, &fallbacks_bold);
 	Ref<FontFile> telugu_font_bold = load_internal_font(_font_NotoSansTeluguUI_Bold, _font_NotoSansTeluguUI_Bold_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false, &fallbacks_bold);
 	Ref<FontFile> thai_font_bold = load_internal_font(_font_NotoSansThai_Bold, _font_NotoSansThai_Bold_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false, &fallbacks_bold);
-	if (!noto_cjk_bold_path.is_empty()) {
-		load_external_font(noto_cjk_bold_path, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false, &fallbacks_bold);
-	}
-	Ref<FontVariation> fallback_font_bold = make_bold_font(fallback_font, embolden_strength, &fallbacks_bold);
-	Ref<FontVariation> japanese_font_bold = make_bold_font(japanese_font, embolden_strength, &fallbacks_bold);
+	// DORO: Do NOT add Noto CJK Bold to fallbacks_bold - it contains Korean glyphs that override DORO font
+	// Keep DroidSansFallback/Japanese variables for potential non-Korean use, but don't add to fallbacks
+	Ref<FontFile> fallback_font = load_internal_font(_font_DroidSansFallback, _font_DroidSansFallback_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false, nullptr);
+	Ref<FontFile> japanese_font = load_internal_font(_font_DroidSansJapanese, _font_DroidSansJapanese_size, font_hinting, font_antialiasing, true, font_subpixel_positioning, font_disable_embedded_bitmaps, false, nullptr);
+	// Don't add make_bold variants to fallbacks_bold to avoid Korean glyph conflict
 
 	if (OS::get_singleton()->has_feature("system_fonts")) {
 		PackedStringArray emoji_font_names = {
@@ -292,12 +323,13 @@ void editor_register_fonts(const Ref<Theme> &p_theme) {
 	} else {
 		EditorSettings::get_singleton()->set_manually("interface/editor/main_font_bold", "");
 		bold_fc->set_base_font(default_font_bold);
+		// DORO: Don't set opentype weight variation - DORO bold is a fixed-weight font
+		// and setting weight=700 causes glyph rendering failures
 	}
 	bold_fc->set_spacing(TextServer::SPACING_TOP, -EDSCALE);
 	bold_fc->set_spacing(TextServer::SPACING_BOTTOM, -EDSCALE);
-	Dictionary bold_fc_opentype;
-	bold_fc_opentype["weight"] = 700;
-	bold_fc->set_variation_opentype(bold_fc_opentype);
+	// DORO: Only set opentype weight for custom fonts that might support variable weight
+	// For built-in DORO bold font, skip this to prevent glyph rendering issues
 
 	Ref<FontVariation> bold_fc_msdf;
 	bold_fc_msdf.instantiate();
@@ -321,10 +353,11 @@ void editor_register_fonts(const Ref<Theme> &p_theme) {
 	} else {
 		EditorSettings::get_singleton()->set_manually("interface/editor/main_font_bold", "");
 		bold_fc_msdf->set_base_font(default_font_bold_msdf);
+		// DORO: Skip opentype weight for built-in DORO bold font
 	}
 	bold_fc_msdf->set_spacing(TextServer::SPACING_TOP, -EDSCALE);
 	bold_fc_msdf->set_spacing(TextServer::SPACING_BOTTOM, -EDSCALE);
-	bold_fc_msdf->set_variation_opentype(bold_fc_opentype);
+	// DORO: Don't set variation_opentype for built-in bold - causes rendering issues
 
 	Ref<FontVariation> mono_fc;
 	mono_fc.instantiate();

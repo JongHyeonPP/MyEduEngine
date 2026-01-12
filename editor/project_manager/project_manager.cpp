@@ -61,9 +61,17 @@
 #include "scene/gui/rich_text_label.h"
 #include "scene/gui/separator.h"
 #include "scene/main/window.h"
+#include "scene/resources/image_texture.h"
 #include "scene/theme/theme_db.h"
 #include "servers/display_server.h"
 #include "servers/navigation_server_3d.h"
+
+// DORO: Embedded mascot image data
+#include "doro_mascot_data.gen.h"
+// DORO: Embedded font data
+#include "doro_font_bold_data.gen.h"
+#include "doro_font_data.gen.h"
+#include "scene/resources/font.h"
 
 #ifndef PHYSICS_3D_DISABLED
 #include "servers/physics_server_3d.h"
@@ -232,7 +240,26 @@ void ProjectManager::_update_theme(bool p_skip_creation) {
 		main_vbox->add_theme_constant_override("separation", top_bar_separation);
 
 		background_panel->add_theme_style_override(SceneStringName(panel), get_theme_stylebox(SNAME("Background"), EditorStringName(EditorStyles)));
+
+		// DORO: Override background to light blue gradient
+		{
+			Ref<StyleBoxFlat> doro_bg;
+			doro_bg.instantiate();
+			doro_bg->set_bg_color(Color(0.91, 0.96, 0.99, 1.0)); // #E8F5FC light blue
+			doro_bg->set_corner_radius_all(0);
+			background_panel->add_theme_style_override(SceneStringName(panel), doro_bg);
+		}
+
 		main_view_container->add_theme_style_override(SceneStringName(panel), get_theme_stylebox(SceneStringName(panel), SNAME("TabContainer")));
+
+		// DORO: Override main view container to transparent/light
+		{
+			Ref<StyleBoxFlat> doro_container_bg;
+			doro_container_bg.instantiate();
+			doro_container_bg->set_bg_color(Color(0.91, 0.96, 0.99, 1.0)); // Same light blue
+			doro_container_bg->set_corner_radius_all(0);
+			main_view_container->add_theme_style_override(SceneStringName(panel), doro_container_bg);
+		}
 
 		title_bar_logo->set_button_icon(get_editor_theme_icon(SNAME("TitleBarLogo")));
 
@@ -243,6 +270,18 @@ void ProjectManager::_update_theme(bool p_skip_creation) {
 		{
 			loading_label->add_theme_font_override(SceneStringName(font), get_theme_font(SNAME("bold"), EditorStringName(EditorFonts)));
 			project_list_panel->add_theme_style_override(SceneStringName(panel), get_theme_stylebox(SNAME("project_list"), SNAME("ProjectManager")));
+
+			// DORO: Override project list panel to white with rounded corners
+			{
+				Ref<StyleBoxFlat> doro_list_bg;
+				doro_list_bg.instantiate();
+				doro_list_bg->set_bg_color(Color(1.0, 1.0, 1.0, 0.95)); // White with slight transparency
+				doro_list_bg->set_corner_radius_all(24);
+				doro_list_bg->set_content_margin_all(20);
+				doro_list_bg->set_shadow_color(Color(0, 0.2, 0.4, 0.1));
+				doro_list_bg->set_shadow_size(10);
+				project_list_panel->add_theme_style_override(SceneStringName(panel), doro_list_bg);
+			}
 
 			empty_list_create_project->set_button_icon(get_editor_theme_icon(SNAME("Add")));
 			empty_list_import_project->set_button_icon(get_editor_theme_icon(SNAME("Load")));
@@ -326,7 +365,10 @@ Button *ProjectManager::_add_main_view(MainViewTab p_id, const String &p_name, c
 
 void ProjectManager::_set_main_view_icon(MainViewTab p_id, const Ref<Texture2D> &p_icon) {
 	ERR_FAIL_INDEX(p_id, MAIN_VIEW_MAX);
-	ERR_FAIL_COND(!main_view_toggle_map.has(p_id));
+	// Silently return if toggle button not yet initialized (happens during theme update before UI init)
+	if (!main_view_toggle_map.has(p_id)) {
+		return;
+	}
 
 	Button *toggle_button = main_view_toggle_map[p_id];
 
@@ -421,6 +463,12 @@ void ProjectManager::_restart_confirmed() {
 // Project list.
 
 void ProjectManager::_update_list_placeholder() {
+	// DORO: Always hide empty list placeholder - we use CTA card instead
+	empty_list_placeholder->hide();
+	return;
+
+	// Original code disabled for DORO:
+#if 0
 	if (project_list->get_project_count() > 0) {
 		empty_list_placeholder->hide();
 		return;
@@ -438,6 +486,7 @@ void ProjectManager::_update_list_placeholder() {
 	}
 
 	empty_list_placeholder->show();
+#endif
 }
 
 void ProjectManager::_scan_projects() {
@@ -1352,6 +1401,24 @@ ProjectManager::ProjectManager() {
 		set_anchors_and_offsets_preset(Control::PRESET_FULL_RECT);
 
 		_build_icon_type_cache(theme);
+
+		// DORO: Load embedded Korean font
+		{
+			Ref<FontFile> doro_font;
+			doro_font.instantiate();
+
+			// Copy font data to PackedByteArray
+			PackedByteArray font_data;
+			font_data.resize(doro_font_size);
+			memcpy(font_data.ptrw(), doro_font_data, doro_font_size);
+			doro_font->set_data(font_data);
+
+			// Register to theme for Korean text
+			theme->set_font(SNAME("font"), SNAME("Label"), doro_font);
+			theme->set_font(SNAME("font"), SNAME("Button"), doro_font);
+			theme->set_font(SNAME("font"), SNAME("LineEdit"), doro_font);
+			theme->set_default_font(doro_font);
+		}
 	}
 
 	// Project manager layout.
@@ -1372,6 +1439,7 @@ ProjectManager::ProjectManager() {
 
 	{
 		title_bar = memnew(EditorTitleBar);
+		title_bar->set_visible(false); // DORO: Hide title bar for simplified dashboard
 		main_vbox->add_child(title_bar);
 
 		if (can_expand) {
@@ -1389,7 +1457,9 @@ ProjectManager::ProjectManager() {
 
 		title_bar_logo = memnew(Button);
 		title_bar_logo->set_flat(true);
-		title_bar_logo->set_tooltip_text(TTR("About Godot"));
+		// DORO: Replace Godot logo with DORO branding text
+		title_bar_logo->set_text(U"DORO 상상 공작소");
+		title_bar_logo->set_tooltip_text(U"DORO 창작 플랫폼");
 		left_hbox->add_child(title_bar_logo);
 		title_bar_logo->connect(SceneStringName(pressed), callable_mp(this, &ProjectManager::_show_about));
 
@@ -1446,18 +1516,91 @@ ProjectManager::ProjectManager() {
 		local_projects_vb->set_name("LocalProjectsTab");
 		_add_main_view(MAIN_VIEW_PROJECTS, TTRC("Projects"), Ref<Texture2D>(), local_projects_vb);
 
+		// DORO: Add header with title
+		{
+			VBoxContainer *doro_header = memnew(VBoxContainer);
+			doro_header->set_alignment(BoxContainer::ALIGNMENT_CENTER);
+			doro_header->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+			local_projects_vb->add_child(doro_header);
+
+			Label *tagline = memnew(Label);
+			tagline->set_text(U"내 손으로 직접 만드는");
+			tagline->set_horizontal_alignment(HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
+			tagline->add_theme_font_size_override(SceneStringName(font_size), 28);
+			tagline->add_theme_color_override(SceneStringName(font_color), Color(0.35, 0.49, 0.65)); // #5A7CA6
+			doro_header->add_child(tagline);
+
+			Label *main_title = memnew(Label);
+			main_title->set_text(U"상상 공작소");
+			main_title->set_horizontal_alignment(HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
+
+			// DORO: Create bold font directly from embedded data to avoid FontVariation issues
+			{
+				Ref<FontFile> doro_bold;
+				doro_bold.instantiate();
+				PackedByteArray bold_data;
+				bold_data.resize(doro_font_bold_size);
+				memcpy(bold_data.ptrw(), doro_font_bold_data, doro_font_bold_size);
+				doro_bold->set_data(bold_data);
+				doro_bold->set_allow_system_fallback(false);
+				main_title->add_theme_font_override(SceneStringName(font), doro_bold);
+			}
+
+			main_title->add_theme_font_size_override(SceneStringName(font_size), 76);
+			main_title->add_theme_color_override(SceneStringName(font_color), Color(0.1, 0.21, 0.36)); // #1A365D
+			doro_header->add_child(main_title);
+
+			// DORO: Mascot image from embedded PNG data
+			TextureRect *mascot = memnew(TextureRect);
+			mascot->set_custom_minimum_size(Size2(200, 200));
+			mascot->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
+			mascot->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
+
+			// Load mascot from embedded PNG byte array
+			Ref<Image> mascot_img;
+			mascot_img.instantiate();
+			Vector<uint8_t> png_buffer;
+			png_buffer.resize(doro_mascot_png_size);
+			memcpy(png_buffer.ptrw(), doro_mascot_png_data, doro_mascot_png_size);
+			Error err = mascot_img->load_png_from_buffer(png_buffer);
+			if (err == OK) {
+				mascot->set_texture(ImageTexture::create_from_image(mascot_img));
+			}
+			doro_header->add_child(mascot);
+
+			// Add some spacing
+			Control *spacer = memnew(Control);
+			spacer->set_custom_minimum_size(Size2(0, 20));
+			doro_header->add_child(spacer);
+		}
+
 		// Project list's top bar.
+		// DORO: Redesigned with title label
 		{
 			HBoxContainer *hb = memnew(HBoxContainer);
 			hb->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+			hb->add_theme_constant_override("separation", 20 * EDSCALE);
 			local_projects_vb->add_child(hb);
 
+			// DORO: Add "내 프로젝트 목록" title
+			Label *list_title = memnew(Label);
+			list_title->set_text(U"내 프로젝트 목록");
+			list_title->add_theme_font_size_override(SceneStringName(font_size), 24 * EDSCALE);
+			list_title->add_theme_color_override(SceneStringName(font_color), Color(0.29, 0.33, 0.41)); // #4A5568
+			list_title->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+			hb->add_child(list_title);
+
 			create_btn = memnew(Button);
-			create_btn->set_text(TTRC("Create"));
+			// DORO: Use Korean CTA text
+			create_btn->set_text(U"+ 새 작품 만들기");
 			create_btn->set_shortcut(ED_SHORTCUT("project_manager/new_project", TTRC("New Project"), KeyModifierMask::CMD_OR_CTRL | Key::N));
 			create_btn->connect(SceneStringName(pressed), callable_mp(this, &ProjectManager::_new_project));
 			hb->add_child(create_btn);
+			// DORO: Hide create button - using CTA card instead
+			create_btn->set_visible(false);
 
+			// DORO: Hide Import and Scan buttons for simplified dashboard
+#if 0
 			import_btn = memnew(Button);
 			import_btn->set_text(TTRC("Import"));
 			import_btn->set_shortcut(ED_SHORTCUT("project_manager/import_project", TTRC("Import Project"), KeyModifierMask::CMD_OR_CTRL | Key::I));
@@ -1469,6 +1612,7 @@ ProjectManager::ProjectManager() {
 			scan_btn->set_shortcut(ED_SHORTCUT("project_manager/scan_projects", TTRC("Scan Projects"), KeyModifierMask::CMD_OR_CTRL | Key::S));
 			scan_btn->connect(SceneStringName(pressed), callable_mp(this, &ProjectManager::_scan_projects));
 			hb->add_child(scan_btn);
+#endif
 
 			loading_label = memnew(Label(TTRC("Loading, please wait...")));
 			loading_label->set_accessibility_live(DisplayServer::AccessibilityLiveMode::LIVE_ASSERTIVE);
@@ -1485,10 +1629,14 @@ ProjectManager::ProjectManager() {
 			search_box->connect(SceneStringName(text_submitted), callable_mp(this, &ProjectManager::_on_search_term_submitted));
 			search_box->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 			hb->add_child(search_box);
+			// DORO: Hide search box - not matching DORO design
+			search_box->set_visible(false);
 
 			sort_label = memnew(Label);
 			sort_label->set_text(TTRC("Sort:"));
 			hb->add_child(sort_label);
+			// DORO: Hide sort label
+			sort_label->set_visible(false);
 
 			filter_option = memnew(OptionButton);
 			filter_option->set_clip_text(true);
@@ -1497,6 +1645,8 @@ ProjectManager::ProjectManager() {
 			filter_option->set_accessibility_name(TTRC("Sort:"));
 			filter_option->connect(SceneStringName(item_selected), callable_mp(this, &ProjectManager::_on_order_option_changed));
 			hb->add_child(filter_option);
+			// DORO: Hide filter dropdown
+			filter_option->set_visible(false);
 
 			filter_option->add_item(TTRC("Last Edited"));
 			filter_option->add_item(TTRC("Name"));
@@ -1572,8 +1722,10 @@ ProjectManager::ProjectManager() {
 			}
 
 			// The side bar with the edit, run, rename, etc. buttons.
+			// DORO: Hide sidebar for simplified dashboard
 			VBoxContainer *project_list_sidebar = memnew(VBoxContainer);
 			project_list_sidebar->set_custom_minimum_size(Size2(120, 120));
+			project_list_sidebar->set_visible(false); // DORO: Hide sidebar
 			project_list_hbox->add_child(project_list_sidebar);
 
 			project_list_sidebar->add_child(memnew(HSeparator));
@@ -1646,6 +1798,8 @@ ProjectManager::ProjectManager() {
 	}
 
 	// Asset library view.
+	// DORO: Hide Asset Library tab for simplified dashboard
+#if 0
 	if (AssetLibraryEditorPlugin::is_available()) {
 		asset_library = memnew(EditorAssetLibrary(true));
 		asset_library->set_name("AssetLibraryTab");
@@ -1658,12 +1812,15 @@ ProjectManager::ProjectManager() {
 		asset_library_toggle->set_disabled(true);
 		asset_library_toggle->set_tooltip_text(TTRC("Asset Library not available (due to using Web editor, or because SSL support disabled)."));
 	}
+#endif
 
 	// Footer bar.
+	// DORO: Hide footer for simplified dashboard
 	{
 		HBoxContainer *footer_bar = memnew(HBoxContainer);
 		footer_bar->set_alignment(BoxContainer::ALIGNMENT_END);
 		footer_bar->add_theme_constant_override("separation", 20 * EDSCALE);
+		footer_bar->set_visible(false); // DORO: Hide footer
 		main_vbox->add_child(footer_bar);
 
 #ifdef ENGINE_UPDATE_CHECK_ENABLED

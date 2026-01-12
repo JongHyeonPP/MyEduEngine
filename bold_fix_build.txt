@@ -1,0 +1,32 @@
+scons: Reading SConscript files ...
+INFO: Forcing `initial_memory=64` as it is required for the web editor.
+Building for platform "web", architecture "wasm32", target "editor".
+Using LTO: thin
+scons: done reading SConscript files.
+scons: Building targets ...
+Compiling editor\project_manager\project_manager.cpp ...
+editor\project_manager\project_manager.cpp:1541:22: error: use of undeclared identifier 'doro_font_bold_size'; did you mean 'doro_font_size'?
+ 1541 |                                 bold_data.resize(doro_font_bold_size);
+      |                                                  ^~~~~~~~~~~~~~~~~~~
+      |                                                  doro_font_size
+editor\project_manager\doro_font_data.gen.h:5:22: note: 'doro_font_size' declared here
+    5 | inline constexpr int doro_font_size = 1630728;
+      |                      ^
+editor\project_manager\project_manager.cpp:1542:30: error: use of undeclared identifier 'doro_font_bold_data'; did you mean 'doro_font_data'?
+ 1542 |                                 memcpy(bold_data.ptrw(), doro_font_bold_data, doro_font_bold_size);
+      |                                                          ^~~~~~~~~~~~~~~~~~~
+      |                                                          doro_font_data
+editor\project_manager\doro_font_data.gen.h:6:32: note: 'doro_font_data' declared here
+    6 | inline constexpr unsigned char doro_font_data[] = {     0, 1, 0, 0, 0, 14, 0, 128, 0, 3, 0, 96, 68, 83, 73, 71, 0, 0, 0, 2, 0, 24, 210, 228, 0, 0, 0, 8, 71, 68, 69, 70, 
+      |                                ^
+editor\project_manager\project_manager.cpp:1542:51: error: use of undeclared identifier 'doro_font_bold_size'; did you mean 'doro_font_size'?
+ 1542 |                                 memcpy(bold_data.ptrw(), doro_font_bold_data, doro_font_bold_size);
+      |                                                                               ^~~~~~~~~~~~~~~~~~~
+      |                                                                               doro_font_size
+editor\project_manager\doro_font_data.gen.h:5:22: note: 'doro_font_size' declared here
+    5 | inline constexpr int doro_font_size = 1630728;
+      |                      ^
+3 errors generated.
+scons: *** [bin\obj\editor\project_manager\project_manager.web.editor.wasm32.o] Error 1
+scons: building terminated because of errors.
+INFO: Time elapsed: 00:00:18.89

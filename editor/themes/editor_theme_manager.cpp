@@ -303,6 +303,11 @@ EditorThemeManager::ThemeConfiguration EditorThemeManager::_create_theme_config(
 				preset_base_color = Color(0.9, 0.9, 0.9);
 				// A negative contrast rate looks better for light themes, since it better follows the natural order of UI "elevation".
 				preset_contrast = -0.06;
+			} else if (config.preset == "DORO") {
+				// DORO: Light blue gradient theme for education/kids
+				preset_accent_color = Color(0.17, 0.49, 0.91); // #2B7DE9 - DORO primary blue
+				preset_base_color = Color(0.91, 0.96, 0.99); // Light blue-gray background
+				preset_contrast = -0.04;
 			} else if (config.preset == "Solarized (Dark)") {
 				preset_accent_color = Color(0.15, 0.55, 0.82);
 				preset_base_color = Color(0.03, 0.21, 0.26);

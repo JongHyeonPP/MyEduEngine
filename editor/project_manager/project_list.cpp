@@ -48,6 +48,7 @@
 #include "scene/gui/texture_button.h"
 #include "scene/gui/texture_rect.h"
 #include "scene/resources/image_texture.h"
+#include "scene/resources/style_box_flat.h"
 
 const char *ProjectList::SIGNAL_LIST_CHANGED = "list_changed";
 const char *ProjectList::SIGNAL_SELECTION_CHANGED = "selection_changed";
@@ -56,6 +57,18 @@ const char *ProjectList::SIGNAL_PROJECT_ASK_OPEN = "project_ask_open";
 void ProjectListItemControl::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_THEME_CHANGED: {
+			// DORO: Apply white card styling with border
+			{
+				Ref<StyleBoxFlat> card_style;
+				card_style.instantiate();
+				card_style->set_bg_color(Color(1.0, 1.0, 1.0)); // White
+				card_style->set_corner_radius_all(24);
+				card_style->set_border_width_all(2);
+				card_style->set_border_color(Color(0.93, 0.95, 0.97)); // #EDF2F7
+				card_style->set_content_margin_all(16);
+				add_theme_style_override("panel", card_style);
+			}
+
 			if (icon_needs_reload) {
 				// The project icon may not be loaded by the time the control is displayed,
 				// so use a loading placeholder.
@@ -65,7 +78,7 @@ void ProjectListItemControl::_notification(int p_what) {
 			project_title->begin_bulk_theme_override();
 			project_title->add_theme_font_override(SceneStringName(font), get_theme_font(SNAME("title"), EditorStringName(EditorFonts)));
 			project_title->add_theme_font_size_override(SceneStringName(font_size), get_theme_font_size(SNAME("title_size"), EditorStringName(EditorFonts)));
-			project_title->add_theme_color_override(SceneStringName(font_color), get_theme_color(SceneStringName(font_color), SNAME("Tree")));
+			project_title->add_theme_color_override(SceneStringName(font_color), Color(0.10, 0.21, 0.36)); // #1A365D DORO text color
 			project_title->end_bulk_theme_override();
 
 			project_path->add_theme_color_override(SceneStringName(font_color), get_theme_color(SceneStringName(font_color), SNAME("Tree")));
@@ -320,105 +333,81 @@ void ProjectListItemControl::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("explore_pressed"));
 }
 
+// DORO: Completely redesigned as vertical card layout instead of horizontal list item
 ProjectListItemControl::ProjectListItemControl() {
 	set_focus_mode(FocusMode::FOCUS_ALL);
 	set_auto_translate_mode(AUTO_TRANSLATE_MODE_DISABLED);
 
-	VBoxContainer *favorite_box = memnew(VBoxContainer);
-	favorite_box->set_alignment(BoxContainer::ALIGNMENT_CENTER);
-	add_child(favorite_box);
+	// DORO: Set card minimum size for grid layout (384x264 for DORO dashboard)
+	set_custom_minimum_size(Size2(384, 264) * EDSCALE);
 
-	favorite_button = memnew(TextureButton);
-	favorite_button->set_name("FavoriteButton");
-	favorite_button->set_tooltip_text(TTRC("Add to favorites"));
-	favorite_button->set_auto_translate_mode(AUTO_TRANSLATE_MODE_ALWAYS);
-	// This makes the project's "hover" style display correctly when hovering the favorite icon.
-	favorite_button->set_mouse_filter(MOUSE_FILTER_PASS);
-	favorite_box->add_child(favorite_button);
-	favorite_button->connect(SceneStringName(pressed), callable_mp(this, &ProjectListItemControl::_favorite_button_pressed));
-
-	project_icon = memnew(TextureRect);
-	project_icon->set_name("ProjectIcon");
-	project_icon->set_v_size_flags(SIZE_SHRINK_CENTER);
-	add_child(project_icon);
-
+	// Main vertical container for card content
 	main_vbox = memnew(VBoxContainer);
+	main_vbox->set_alignment(BoxContainer::ALIGNMENT_CENTER);
 	main_vbox->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+	main_vbox->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+	main_vbox->add_theme_constant_override("separation", 8 * EDSCALE);
 	add_child(main_vbox);
 
-	Control *ec = memnew(Control);
-	ec->set_custom_minimum_size(Size2(0, 1));
-	ec->set_mouse_filter(MOUSE_FILTER_PASS);
-	main_vbox->add_child(ec);
+	// Top spacer for centering
+	Control *top_spacer = memnew(Control);
+	top_spacer->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+	main_vbox->add_child(top_spacer);
 
-	// Top half, title, tags and unsupported features labels.
-	{
-		HBoxContainer *title_hb = memnew(HBoxContainer);
-		main_vbox->add_child(title_hb);
+	// Project icon (centered, larger for card view)
+	project_icon = memnew(TextureRect);
+	project_icon->set_name("ProjectIcon");
+	project_icon->set_custom_minimum_size(Size2(64, 64) * EDSCALE);
+	project_icon->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
+	project_icon->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
+	main_vbox->add_child(project_icon);
 
-		project_title = memnew(Label);
-		project_title->set_focus_mode(FOCUS_ACCESSIBILITY);
-		project_title->set_name("ProjectName");
-		project_title->set_h_size_flags(Control::SIZE_EXPAND_FILL);
-		project_title->set_clip_text(true);
-		title_hb->add_child(project_title);
+	// Project title (centered, bold)
+	project_title = memnew(Label);
+	project_title->set_name("ProjectName");
+	project_title->set_horizontal_alignment(HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
+	project_title->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+	project_title->set_clip_text(true);
+	main_vbox->add_child(project_title);
 
-		tag_container = memnew(HBoxContainer);
-		title_hb->add_child(tag_container);
+	// Last edited date (centered, smaller, muted)
+	last_edited_info = memnew(Label);
+	last_edited_info->set_name("LastEditedInfo");
+	last_edited_info->set_horizontal_alignment(HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
+	last_edited_info->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+	last_edited_info->set_modulate(Color(0.5, 0.5, 0.5, 1.0));
+	main_vbox->add_child(last_edited_info);
 
-		Control *spacer = memnew(Control);
-		spacer->set_custom_minimum_size(Size2(10, 10));
-		title_hb->add_child(spacer);
-	}
+	// Bottom spacer for centering
+	Control *bottom_spacer = memnew(Control);
+	bottom_spacer->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+	main_vbox->add_child(bottom_spacer);
 
-	// Bottom half, containing the path and view folder button.
-	{
-		HBoxContainer *path_hb = memnew(HBoxContainer);
-		path_hb->set_h_size_flags(Control::SIZE_EXPAND_FILL);
-		main_vbox->add_child(path_hb);
+	// DORO: Hidden elements (still created for compatibility but not added to tree)
+	favorite_button = memnew(TextureButton);
+	favorite_button->set_name("FavoriteButton");
+	favorite_button->set_visible(false);
+	favorite_button->connect(SceneStringName(pressed), callable_mp(this, &ProjectListItemControl::_favorite_button_pressed));
 
-		explore_button = memnew(Button);
-		explore_button->set_name("ExploreButton");
-		explore_button->set_tooltip_auto_translate_mode(AUTO_TRANSLATE_MODE_ALWAYS);
-		explore_button->set_tooltip_text(TTRC("Open in file manager"));
-		explore_button->set_flat(true);
-		path_hb->add_child(explore_button);
-		explore_button->connect(SceneStringName(pressed), callable_mp(this, &ProjectListItemControl::_explore_button_pressed));
+	explore_button = memnew(Button);
+	explore_button->set_name("ExploreButton");
+	explore_button->set_visible(false);
+	explore_button->connect(SceneStringName(pressed), callable_mp(this, &ProjectListItemControl::_explore_button_pressed));
 
-		project_path = memnew(Label);
-		project_path->set_name("ProjectPath");
-		project_path->set_focus_mode(FOCUS_ACCESSIBILITY);
-		project_path->set_structured_text_bidi_override(TextServer::STRUCTURED_TEXT_FILE);
-		project_path->set_clip_text(true);
-		project_path->set_h_size_flags(Control::SIZE_EXPAND_FILL);
-		project_path->set_modulate(Color(1, 1, 1, 0.5));
-		path_hb->add_child(project_path);
+	project_path = memnew(Label);
+	project_path->set_name("ProjectPath");
+	project_path->set_visible(false);
 
-		project_unsupported_features = memnew(TextureRect);
-		project_unsupported_features->set_name("ProjectUnsupportedFeatures");
-		project_unsupported_features->set_stretch_mode(TextureRect::STRETCH_KEEP_CENTERED);
-		path_hb->add_child(project_unsupported_features);
-		project_unsupported_features->hide();
+	project_version = memnew(Label);
+	project_version->set_name("ProjectVersion");
+	project_version->set_visible(false);
 
-		project_version = memnew(Label);
-		project_version->set_focus_mode(FOCUS_ACCESSIBILITY);
-		project_version->set_name("ProjectVersion");
-		project_version->set_mouse_filter(Control::MOUSE_FILTER_PASS);
-		path_hb->add_child(project_version);
+	project_unsupported_features = memnew(TextureRect);
+	project_unsupported_features->set_name("ProjectUnsupportedFeatures");
+	project_unsupported_features->set_visible(false);
 
-		last_edited_info = memnew(Label);
-		last_edited_info->set_focus_mode(FOCUS_ACCESSIBILITY);
-		last_edited_info->set_name("LastEditedInfo");
-		last_edited_info->set_mouse_filter(Control::MOUSE_FILTER_PASS);
-		last_edited_info->set_tooltip_auto_translate_mode(AUTO_TRANSLATE_MODE_ALWAYS);
-		last_edited_info->set_tooltip_text(TTRC("Last edited timestamp"));
-		last_edited_info->set_modulate(Color(1, 1, 1, 0.5));
-		path_hb->add_child(last_edited_info);
-
-		Control *spacer = memnew(Control);
-		spacer->set_custom_minimum_size(Size2(10, 10));
-		path_hb->add_child(spacer);
-	}
+	tag_container = memnew(HBoxContainer);
+	tag_container->set_visible(false);
 }
 
 struct ProjectListComparator {
@@ -723,11 +712,16 @@ void ProjectList::update_project_list() {
 	// FIXME: Does it really have to be a full, hard reload? Runtime updates should be made much cheaper.
 
 	if (ProjectManager::get_singleton()->is_initialized()) {
-		// Clear whole list
+		// Clear whole list including CTA card
+		while (project_list_grid->get_child_count() > 0) {
+			Node *child = project_list_grid->get_child(0);
+			project_list_grid->remove_child(child);
+			memdelete(child);
+		}
+
 		for (int i = 0; i < _projects.size(); ++i) {
 			Item &project = _projects.write[i];
-			CRASH_COND(project.control == nullptr);
-			memdelete(project.control); // Why not queue_free()?
+			project.control = nullptr;
 		}
 
 		_projects.clear();
@@ -737,7 +731,66 @@ void ProjectList::update_project_list() {
 		load_project_list();
 	}
 
-	// Create controls
+	// DORO: Add CTA card as first item
+	{
+		PanelContainer *cta_card = memnew(PanelContainer);
+		cta_card->set_custom_minimum_size(Size2(384, 264) * EDSCALE); // DORO card size
+
+		// CTA card styling - dashed border effect with stylebox
+		Ref<StyleBoxFlat> cta_style;
+		cta_style.instantiate();
+		cta_style->set_bg_color(Color(1.0, 0.99, 0.96)); // #FFF7ED gradient start
+		cta_style->set_corner_radius_all(24);
+		cta_style->set_border_width_all(3);
+		cta_style->set_border_color(Color(0.94, 0.44, 0.40)); // #F07167 secondary
+		cta_card->add_theme_style_override("panel", cta_style);
+
+		VBoxContainer *cta_content = memnew(VBoxContainer);
+		cta_content->set_alignment(BoxContainer::ALIGNMENT_CENTER);
+		cta_content->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		cta_content->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+		cta_card->add_child(cta_content);
+
+		Control *cta_top_spacer = memnew(Control);
+		cta_top_spacer->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+		cta_content->add_child(cta_top_spacer);
+
+		// Plus icon
+		Label *cta_icon = memnew(Label);
+		cta_icon->set_text(U"＋");
+		cta_icon->set_horizontal_alignment(HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
+		cta_icon->add_theme_font_size_override("font_size", 48 * EDSCALE);
+		cta_icon->add_theme_color_override("font_color", Color(0.94, 0.44, 0.40)); // #F07167
+		cta_content->add_child(cta_icon);
+
+		// CTA text
+		Label *cta_text = memnew(Label);
+		cta_text->set_text(U"새 작품 만들기");
+		cta_text->set_horizontal_alignment(HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
+		cta_text->add_theme_font_size_override("font_size", 24 * EDSCALE);
+		cta_text->add_theme_color_override("font_color", Color(0.10, 0.21, 0.36)); // #1A365D
+		cta_content->add_child(cta_text);
+
+		// CTA description
+		Label *cta_desc = memnew(Label);
+		cta_desc->set_text(U"버튼을 눌러 모드를 선택하세요");
+		cta_desc->set_horizontal_alignment(HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
+		cta_desc->add_theme_font_size_override("font_size", 14 * EDSCALE);
+		cta_desc->add_theme_color_override("font_color", Color(0.44, 0.50, 0.59)); // #718096
+		cta_content->add_child(cta_desc);
+
+		Control *cta_bottom_spacer = memnew(Control);
+		cta_bottom_spacer->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+		cta_content->add_child(cta_bottom_spacer);
+
+		// DORO: Connect click to new project via create_btn
+		// Use gui_input to catch mouse clicks and emit create_btn pressed signal
+		cta_card->connect("gui_input", callable_mp(this, &ProjectList::_on_cta_card_input));
+
+		project_list_grid->add_child(cta_card);
+	}
+
+	// Create project item controls
 	for (int i = 0; i < _projects.size(); ++i) {
 		_create_project_item_control(i);
 	}
@@ -979,7 +1032,8 @@ void ProjectList::ensure_project_visible(int p_index) {
 
 void ProjectList::_create_project_item_control(int p_index) {
 	// Will be added last in the list, so make sure indexes match
-	ERR_FAIL_COND(p_index != project_list_vbox->get_child_count());
+	// DORO: +1 offset because CTA card is at index 0
+	ERR_FAIL_COND((p_index + 1) != project_list_grid->get_child_count());
 
 	Item &item = _projects.write[p_index];
 	ERR_FAIL_COND(item.control != nullptr); // Already created
@@ -1006,7 +1060,7 @@ void ProjectList::_create_project_item_control(int p_index) {
 	hb->connect("explore_pressed", callable_mp(this, &ProjectList::_on_explore_pressed).bind(item.path));
 #endif
 
-	project_list_vbox->add_child(hb);
+	project_list_grid->add_child(hb);
 	item.control = hb;
 }
 
@@ -1041,6 +1095,18 @@ void ProjectList::_remove_project(int p_index, bool p_update_config) {
 
 	queue_accessibility_update();
 	update_dock_menu();
+}
+
+// DORO: Handle CTA card click to create new project
+void ProjectList::_on_cta_card_input(const Ref<InputEvent> &p_ev) {
+	Ref<InputEventMouseButton> mb = p_ev;
+	if (mb.is_valid() && mb->is_pressed() && mb->get_button_index() == MouseButton::LEFT) {
+		// Trigger create_btn pressed to call _new_project
+		Button *create_btn = ProjectManager::get_singleton()->get_create_button();
+		if (create_btn) {
+			create_btn->emit_signal(SceneStringName(pressed));
+		}
+	}
 }
 
 void ProjectList::_list_item_input(const Ref<InputEvent> &p_ev, Node *p_hb) {
@@ -1372,9 +1438,13 @@ void ProjectList::_bind_methods() {
 }
 
 ProjectList::ProjectList() {
-	project_list_vbox = memnew(VBoxContainer);
-	project_list_vbox->set_h_size_flags(Control::SIZE_EXPAND_FILL);
-	add_child(project_list_vbox);
+	// DORO: Changed from VBoxContainer to GridContainer for card grid layout
+	project_list_grid = memnew(GridContainer);
+	project_list_grid->set_columns(3);
+	project_list_grid->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+	project_list_grid->add_theme_constant_override("h_separation", 20);
+	project_list_grid->add_theme_constant_override("v_separation", 20);
+	add_child(project_list_grid);
 
 	_config_path = EditorPaths::get_singleton()->get_data_dir().path_join("projects.cfg");
 	_migrate_config();

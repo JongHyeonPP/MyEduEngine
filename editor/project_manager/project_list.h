@@ -33,6 +33,8 @@
 #include "core/io/config_file.h"
 #include "core/os/time.h"
 #include "scene/gui/box_container.h"
+#include "scene/gui/grid_container.h"
+#include "scene/gui/panel_container.h"
 #include "scene/gui/scroll_container.h"
 
 class AcceptDialog;
@@ -42,8 +44,9 @@ class ProjectList;
 class TextureButton;
 class TextureRect;
 
-class ProjectListItemControl : public HBoxContainer {
-	GDCLASS(ProjectListItemControl, HBoxContainer)
+// DORO: Changed from HBoxContainer to PanelContainer for card layout
+class ProjectListItemControl : public PanelContainer {
+	GDCLASS(ProjectListItemControl, PanelContainer)
 
 	VBoxContainer *main_vbox = nullptr;
 	TextureButton *favorite_button = nullptr;
@@ -195,7 +198,8 @@ private:
 	HashSet<String> _selected_project_paths;
 	String _last_clicked; // Project key
 
-	VBoxContainer *project_list_vbox = nullptr;
+	// DORO: Changed from VBoxContainer to GridContainer for card grid
+	GridContainer *project_list_grid = nullptr;
 
 	// Projects scan.
 
@@ -232,6 +236,9 @@ private:
 	void _list_item_input(const Ref<InputEvent> &p_ev, Node *p_hb);
 	void _on_favorite_pressed(Node *p_hb);
 	void _on_explore_pressed(const String &p_path);
+
+	// DORO: CTA card click handler
+	void _on_cta_card_input(const Ref<InputEvent> &p_ev);
 
 	// Project list selection.
 
