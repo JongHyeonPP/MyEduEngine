@@ -68,6 +68,8 @@
 
 // DORO: Embedded mascot image data
 #include "doro_mascot_data.gen.h"
+// DORO: Embedded logo image data
+#include "doro_logo_data.gen.h"
 // DORO: Embedded font data
 #include "doro_font_bold_data.gen.h"
 #include "doro_font_data.gen.h"
@@ -1521,7 +1523,35 @@ ProjectManager::ProjectManager() {
 			VBoxContainer *doro_header = memnew(VBoxContainer);
 			doro_header->set_alignment(BoxContainer::ALIGNMENT_CENTER);
 			doro_header->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+			doro_header->add_theme_constant_override("separation", 4 * EDSCALE); // Compact spacing
 			local_projects_vb->add_child(doro_header);
+
+			// DORO: Logo at top-left (embedded PNG)
+			{
+				HBoxContainer *logo_row = memnew(HBoxContainer);
+				logo_row->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+				doro_header->add_child(logo_row);
+
+				TextureRect *doro_logo = memnew(TextureRect);
+				doro_logo->set_custom_minimum_size(Size2(250, 125)); // Large and visible
+				doro_logo->set_expand_mode(TextureRect::EXPAND_IGNORE_SIZE); // Don't expand beyond minimum
+				doro_logo->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
+
+				// Load logo from embedded PNG byte array
+				Ref<Image> logo_img;
+				logo_img.instantiate();
+				Vector<uint8_t> logo_buffer;
+				logo_buffer.resize(doro_logo_png_data_size);
+				memcpy(logo_buffer.ptrw(), doro_logo_png_data, doro_logo_png_data_size);
+				if (logo_img->load_png_from_buffer(logo_buffer) == OK) {
+					doro_logo->set_texture(ImageTexture::create_from_image(logo_img));
+				}
+				logo_row->add_child(doro_logo);
+
+				Control *logo_spacer = memnew(Control);
+				logo_spacer->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+				logo_row->add_child(logo_spacer);
+			}
 
 			Label *tagline = memnew(Label);
 			tagline->set_text(U"내 손으로 직접 만드는");
@@ -1546,13 +1576,13 @@ ProjectManager::ProjectManager() {
 				main_title->add_theme_font_override(SceneStringName(font), doro_bold);
 			}
 
-			main_title->add_theme_font_size_override(SceneStringName(font_size), 76);
+			main_title->add_theme_font_size_override(SceneStringName(font_size), 64); // Slightly smaller for compactness
 			main_title->add_theme_color_override(SceneStringName(font_color), Color(0.1, 0.21, 0.36)); // #1A365D
 			doro_header->add_child(main_title);
 
 			// DORO: Mascot image from embedded PNG data
 			TextureRect *mascot = memnew(TextureRect);
-			mascot->set_custom_minimum_size(Size2(200, 200));
+			mascot->set_custom_minimum_size(Size2(160, 160)); // Smaller for compactness
 			mascot->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
 			mascot->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
 
@@ -1575,12 +1605,13 @@ ProjectManager::ProjectManager() {
 		}
 
 		// Project list's top bar.
-		// DORO: Redesigned with title label
+		// DORO: Hidden - title is now inside white box
 		{
 			HBoxContainer *hb = memnew(HBoxContainer);
 			hb->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 			hb->add_theme_constant_override("separation", 20 * EDSCALE);
 			local_projects_vb->add_child(hb);
+			hb->set_visible(false); // DORO: Hidden - moved inside white box
 
 			// DORO: Add "내 프로젝트 목록" title
 			Label *list_title = memnew(Label);
@@ -1657,16 +1688,89 @@ ProjectManager::ProjectManager() {
 		// Project list and its sidebar.
 		{
 			HBoxContainer *project_list_hbox = memnew(HBoxContainer);
+			project_list_hbox->set_alignment(BoxContainer::ALIGNMENT_CENTER); // DORO: Center the panel
 			local_projects_vb->add_child(project_list_hbox);
 			project_list_hbox->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+			project_list_hbox->set_h_size_flags(Control::SIZE_EXPAND_FILL); // DORO: Enable h centering for children
 
 			project_list_panel = memnew(PanelContainer);
-			project_list_panel->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+			// DORO: Limited width and center alignment for project list container
+			project_list_panel->set_custom_minimum_size(Size2(1100 * EDSCALE, 0)); // Wider for better layout
+			project_list_panel->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
+
+			// DORO: White box styling - rounded corners, padding, shadow
+			{
+				Ref<StyleBoxFlat> panel_style;
+				panel_style.instantiate();
+				panel_style->set_bg_color(Color(1.0, 1.0, 1.0)); // White
+				panel_style->set_corner_radius_all(20);
+				panel_style->set_content_margin(Side::SIDE_LEFT, 24);
+				panel_style->set_content_margin(Side::SIDE_RIGHT, 24);
+				panel_style->set_content_margin(Side::SIDE_TOP, 20);
+				panel_style->set_content_margin(Side::SIDE_BOTTOM, 24);
+				// Shadow effect
+				panel_style->set_shadow_color(Color(0, 0, 0, 0.08));
+				panel_style->set_shadow_size(8);
+				panel_style->set_shadow_offset(Vector2(0, 4));
+				project_list_panel->add_theme_style_override("panel", panel_style);
+			}
 			project_list_hbox->add_child(project_list_panel);
+
+			// DORO: Inner VBoxContainer to hold title row and project list
+			VBoxContainer *inner_vbox = memnew(VBoxContainer);
+			inner_vbox->add_theme_constant_override("separation", 20 * EDSCALE);
+			project_list_panel->add_child(inner_vbox);
+
+			// DORO: Title row inside white box (내 프로젝트 목록 + 검색창)
+			{
+				HBoxContainer *title_row = memnew(HBoxContainer);
+				title_row->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+				title_row->add_theme_constant_override("separation", 20 * EDSCALE);
+				inner_vbox->add_child(title_row);
+
+				Label *list_title_inner = memnew(Label);
+				list_title_inner->set_text(U"내 프로젝트 목록");
+				list_title_inner->add_theme_font_size_override(SceneStringName(font_size), 28 * EDSCALE); // Much larger
+				list_title_inner->add_theme_color_override(SceneStringName(font_color), Color(0.18, 0.22, 0.28)); // #2D3748 darker
+				title_row->add_child(list_title_inner);
+
+				Control *title_spacer = memnew(Control);
+				title_spacer->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+				title_row->add_child(title_spacer);
+
+				// DORO: Search box with white background and gray border (matching original)
+				LineEdit *search_inner = memnew(LineEdit);
+				search_inner->set_placeholder(U"프로젝트 이름 검색...");
+				search_inner->set_clear_button_enabled(true);
+				search_inner->set_custom_minimum_size(Size2(220 * EDSCALE, 36 * EDSCALE));
+
+				// DORO: Apply white background with gray border style
+				{
+					Ref<StyleBoxFlat> search_style;
+					search_style.instantiate();
+					search_style->set_bg_color(Color(1.0, 1.0, 1.0)); // White background
+					search_style->set_corner_radius_all(8);
+					search_style->set_border_width_all(1);
+					search_style->set_border_color(Color(0.88, 0.90, 0.93)); // #E2E8F0 gray border
+					search_style->set_content_margin(Side::SIDE_LEFT, 12);
+					search_style->set_content_margin(Side::SIDE_RIGHT, 12);
+					search_style->set_content_margin(Side::SIDE_TOP, 8);
+					search_style->set_content_margin(Side::SIDE_BOTTOM, 8);
+					search_inner->add_theme_style_override("normal", search_style);
+					search_inner->add_theme_style_override("focus", search_style);
+				}
+				// DORO: Set text color to dark for contrast on white background
+				search_inner->add_theme_color_override("font_color", Color(0.2, 0.25, 0.3));
+				search_inner->add_theme_color_override("font_placeholder_color", Color(0.5, 0.55, 0.6));
+
+				search_inner->connect(SceneStringName(text_changed), callable_mp(this, &ProjectManager::_on_search_term_changed));
+				title_row->add_child(search_inner);
+			}
 
 			project_list = memnew(ProjectList);
 			project_list->set_horizontal_scroll_mode(ScrollContainer::SCROLL_MODE_DISABLED);
-			project_list_panel->add_child(project_list);
+			project_list->set_v_size_flags(Control::SIZE_EXPAND_FILL); // DORO: Allow project list to fill available space
+			inner_vbox->add_child(project_list);
 			project_list->connect(ProjectList::SIGNAL_LIST_CHANGED, callable_mp(this, &ProjectManager::_update_project_buttons));
 			project_list->connect(ProjectList::SIGNAL_LIST_CHANGED, callable_mp(this, &ProjectManager::_update_list_placeholder));
 			project_list->connect(ProjectList::SIGNAL_SELECTION_CHANGED, callable_mp(this, &ProjectManager::_update_project_buttons));
@@ -1678,7 +1782,7 @@ ProjectManager::ProjectManager() {
 				empty_list_placeholder->set_v_size_flags(Control::SIZE_SHRINK_CENTER);
 				empty_list_placeholder->add_theme_constant_override("separation", 16 * EDSCALE);
 				empty_list_placeholder->hide();
-				project_list_panel->add_child(empty_list_placeholder);
+				inner_vbox->add_child(empty_list_placeholder);
 
 				empty_list_message = memnew(RichTextLabel);
 				empty_list_message->set_auto_translate_mode(AUTO_TRANSLATE_MODE_DISABLED);

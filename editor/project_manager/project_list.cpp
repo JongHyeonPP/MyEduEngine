@@ -57,17 +57,7 @@ const char *ProjectList::SIGNAL_PROJECT_ASK_OPEN = "project_ask_open";
 void ProjectListItemControl::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_THEME_CHANGED: {
-			// DORO: Apply white card styling with border
-			{
-				Ref<StyleBoxFlat> card_style;
-				card_style.instantiate();
-				card_style->set_bg_color(Color(1.0, 1.0, 1.0)); // White
-				card_style->set_corner_radius_all(24);
-				card_style->set_border_width_all(2);
-				card_style->set_border_color(Color(0.93, 0.95, 0.97)); // #EDF2F7
-				card_style->set_content_margin_all(16);
-				add_theme_style_override("panel", card_style);
-			}
+			// DORO: Card styling is now applied in constructor to avoid infinite loop
 
 			if (icon_needs_reload) {
 				// The project icon may not be loaded by the time the control is displayed,
@@ -338,43 +328,88 @@ ProjectListItemControl::ProjectListItemControl() {
 	set_focus_mode(FocusMode::FOCUS_ALL);
 	set_auto_translate_mode(AUTO_TRANSLATE_MODE_DISABLED);
 
-	// DORO: Set card minimum size for grid layout (384x264 for DORO dashboard)
-	set_custom_minimum_size(Size2(384, 264) * EDSCALE);
+	// DORO: Set card minimum size for grid layout (320x200 for kids-friendly)
+	set_custom_minimum_size(Size2(320, 200) * EDSCALE);
+
+	// DORO: Apply card styling in constructor (NOT in NOTIFICATION_THEME_CHANGED to avoid infinite loop)
+	{
+		Ref<StyleBoxFlat> card_style;
+		card_style.instantiate();
+		card_style->set_bg_color(Color(1.0, 1.0, 1.0)); // White
+		card_style->set_corner_radius_all(12); // Softer corners
+		card_style->set_border_width_all(1);
+		card_style->set_border_color(Color(0.90, 0.92, 0.95)); // Light gray border
+		card_style->set_content_margin_all(16);
+		// Add shadow for depth
+		card_style->set_shadow_color(Color(0, 0, 0, 0.06));
+		card_style->set_shadow_size(6);
+		card_style->set_shadow_offset(Vector2(0, 2));
+		add_theme_style_override("panel", card_style);
+	}
 
 	// Main vertical container for card content
 	main_vbox = memnew(VBoxContainer);
-	main_vbox->set_alignment(BoxContainer::ALIGNMENT_CENTER);
+	main_vbox->set_alignment(BoxContainer::ALIGNMENT_BEGIN); // Top aligned
 	main_vbox->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	main_vbox->set_v_size_flags(Control::SIZE_EXPAND_FILL);
-	main_vbox->add_theme_constant_override("separation", 8 * EDSCALE);
+	main_vbox->add_theme_constant_override("separation", 6 * EDSCALE);
 	add_child(main_vbox);
 
-	// Top spacer for centering
-	Control *top_spacer = memnew(Control);
-	top_spacer->set_v_size_flags(Control::SIZE_EXPAND_FILL);
-	main_vbox->add_child(top_spacer);
+	// DORO: MODDER badge (blue background with white text) - TOP LEFT
+	{
+		PanelContainer *badge_container = memnew(PanelContainer);
+		badge_container->set_h_size_flags(Control::SIZE_SHRINK_BEGIN); // Left aligned
 
-	// Project icon (centered, larger for card view)
+		// Blue background style
+		Ref<StyleBoxFlat> badge_style;
+		badge_style.instantiate();
+		badge_style->set_bg_color(Color(0.20, 0.45, 0.80)); // Blue #3374CC
+		badge_style->set_corner_radius_all(4);
+		badge_style->set_content_margin(Side::SIDE_LEFT, 8);
+		badge_style->set_content_margin(Side::SIDE_RIGHT, 8);
+		badge_style->set_content_margin(Side::SIDE_TOP, 3);
+		badge_style->set_content_margin(Side::SIDE_BOTTOM, 3);
+		badge_container->add_theme_style_override("panel", badge_style);
+
+		modder_badge = memnew(Label);
+		modder_badge->set_name("ModderBadge");
+		modder_badge->set_text("MODDER");
+		modder_badge->set_horizontal_alignment(HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
+		modder_badge->add_theme_font_size_override(SceneStringName(font_size), 16 * EDSCALE); // Much larger for visibility
+		modder_badge->add_theme_color_override(SceneStringName(font_color), Color(1.0, 1.0, 1.0)); // White text
+		badge_container->add_child(modder_badge);
+
+		main_vbox->add_child(badge_container);
+	}
+
+	// Spacer before icon
+	Control *icon_spacer = memnew(Control);
+	icon_spacer->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+	main_vbox->add_child(icon_spacer);
+
+	// Project icon (centered, larger for kids)
 	project_icon = memnew(TextureRect);
 	project_icon->set_name("ProjectIcon");
-	project_icon->set_custom_minimum_size(Size2(64, 64) * EDSCALE);
+	project_icon->set_custom_minimum_size(Size2(64, 64) * EDSCALE); // Larger for kids
 	project_icon->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
 	project_icon->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
 	main_vbox->add_child(project_icon);
 
-	// Project title (centered, bold)
+	// Project title (centered, bold, larger for kids)
 	project_title = memnew(Label);
 	project_title->set_name("ProjectName");
 	project_title->set_horizontal_alignment(HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
 	project_title->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	project_title->set_clip_text(true);
+	project_title->add_theme_font_size_override(SceneStringName(font_size), 28 * EDSCALE); // Much larger for readability
 	main_vbox->add_child(project_title);
 
-	// Last edited date (centered, smaller, muted)
+	// Last edited date (centered, larger, muted)
 	last_edited_info = memnew(Label);
 	last_edited_info->set_name("LastEditedInfo");
 	last_edited_info->set_horizontal_alignment(HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
 	last_edited_info->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+	last_edited_info->add_theme_font_size_override(SceneStringName(font_size), 16 * EDSCALE); // Larger
 	last_edited_info->set_modulate(Color(0.5, 0.5, 0.5, 1.0));
 	main_vbox->add_child(last_edited_info);
 
@@ -734,14 +769,14 @@ void ProjectList::update_project_list() {
 	// DORO: Add CTA card as first item
 	{
 		PanelContainer *cta_card = memnew(PanelContainer);
-		cta_card->set_custom_minimum_size(Size2(384, 264) * EDSCALE); // DORO card size
+		cta_card->set_custom_minimum_size(Size2(320, 200) * EDSCALE); // Same as project cards
 
-		// CTA card styling - dashed border effect with stylebox
+		// CTA card styling - border effect with stylebox
 		Ref<StyleBoxFlat> cta_style;
 		cta_style.instantiate();
-		cta_style->set_bg_color(Color(1.0, 0.99, 0.96)); // #FFF7ED gradient start
-		cta_style->set_corner_radius_all(24);
-		cta_style->set_border_width_all(3);
+		cta_style->set_bg_color(Color(1.0, 0.99, 0.97)); // Slightly warm white
+		cta_style->set_corner_radius_all(12); // Same as project cards
+		cta_style->set_border_width_all(2);
 		cta_style->set_border_color(Color(0.94, 0.44, 0.40)); // #F07167 secondary
 		cta_card->add_theme_style_override("panel", cta_style);
 
@@ -757,9 +792,9 @@ void ProjectList::update_project_list() {
 
 		// Plus icon
 		Label *cta_icon = memnew(Label);
-		cta_icon->set_text(U"＋");
+		cta_icon->set_text(U"+");
 		cta_icon->set_horizontal_alignment(HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
-		cta_icon->add_theme_font_size_override("font_size", 48 * EDSCALE);
+		cta_icon->add_theme_font_size_override("font_size", 48 * EDSCALE); // Much larger like original
 		cta_icon->add_theme_color_override("font_color", Color(0.94, 0.44, 0.40)); // #F07167
 		cta_content->add_child(cta_icon);
 
@@ -767,7 +802,7 @@ void ProjectList::update_project_list() {
 		Label *cta_text = memnew(Label);
 		cta_text->set_text(U"새 작품 만들기");
 		cta_text->set_horizontal_alignment(HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
-		cta_text->add_theme_font_size_override("font_size", 24 * EDSCALE);
+		cta_text->add_theme_font_size_override("font_size", 28 * EDSCALE); // Much larger like original
 		cta_text->add_theme_color_override("font_color", Color(0.10, 0.21, 0.36)); // #1A365D
 		cta_content->add_child(cta_text);
 
@@ -775,8 +810,8 @@ void ProjectList::update_project_list() {
 		Label *cta_desc = memnew(Label);
 		cta_desc->set_text(U"버튼을 눌러 모드를 선택하세요");
 		cta_desc->set_horizontal_alignment(HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
-		cta_desc->add_theme_font_size_override("font_size", 14 * EDSCALE);
-		cta_desc->add_theme_color_override("font_color", Color(0.44, 0.50, 0.59)); // #718096
+		cta_desc->add_theme_font_size_override("font_size", 18 * EDSCALE); // Much larger like original
+		cta_desc->add_theme_color_override("font_color", Color(0.50, 0.55, 0.62)); // Lighter gray
 		cta_content->add_child(cta_desc);
 
 		Control *cta_bottom_spacer = memnew(Control);
@@ -860,7 +895,8 @@ void ProjectList::sort_projects() {
 
 	for (int i = 0; i < _projects.size(); ++i) {
 		Item &item = _projects.write[i];
-		item.control->get_parent()->move_child(item.control, i);
+		// DORO: +1 offset because CTA card is at index 0
+		item.control->get_parent()->move_child(item.control, i + 1);
 	}
 
 	// Rewind the coroutine because order of projects changed
@@ -1441,7 +1477,8 @@ ProjectList::ProjectList() {
 	// DORO: Changed from VBoxContainer to GridContainer for card grid layout
 	project_list_grid = memnew(GridContainer);
 	project_list_grid->set_columns(3);
-	project_list_grid->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+	// DORO: Center alignment instead of full width
+	project_list_grid->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
 	project_list_grid->add_theme_constant_override("h_separation", 20);
 	project_list_grid->add_theme_constant_override("v_separation", 20);
 	add_child(project_list_grid);

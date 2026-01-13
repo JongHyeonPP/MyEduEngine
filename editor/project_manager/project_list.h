@@ -53,6 +53,7 @@ class ProjectListItemControl : public PanelContainer {
 	Button *explore_button = nullptr;
 
 	TextureRect *project_icon = nullptr;
+	Label *modder_badge = nullptr; // DORO: MODDER badge
 	Label *project_title = nullptr;
 	Label *project_path = nullptr;
 	Label *last_edited_info = nullptr;
