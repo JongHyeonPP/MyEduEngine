@@ -1,0 +1,50 @@
+scons: Reading SConscript files ...
+INFO: Forcing `initial_memory=64` as it is required for the web editor.
+Building for platform "web", architecture "wasm32", target "editor".
+Using LTO: thin
+scons: done reading SConscript files.
+scons: Building targets ...
+Compiling editor\project_manager\project_dialog.cpp ...
+editor\project_manager\project_dialog.cpp:94:57: error: too few arguments to function call, single argument 'r_buttons' was not specified
+   94 |         for (int i = 0; i < renderer_button_group->get_buttons().size(); i++) {
+      |                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ^
+.\scene/gui/base_button.h:162:7: note: 'get_buttons' declared here
+  162 |         void get_buttons(List<BaseButton *> *r_buttons);
+      |              ^           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+editor\project_manager\project_dialog.cpp:94:58: error: member reference base type 'void' is not a structure or union
+   94 |         for (int i = 0; i < renderer_button_group->get_buttons().size(); i++) {
+      |                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+editor\project_manager\project_dialog.cpp:95:76: error: too few arguments to function call, single argument 'r_buttons' was not specified
+   95 |                 Button *btn = Object::cast_to<Button>(renderer_button_group->get_buttons()[i]);
+      |                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ^
+.\scene/gui/base_button.h:162:7: note: 'get_buttons' declared here
+  162 |         void get_buttons(List<BaseButton *> *r_buttons);
+      |              ^           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+editor\project_manager\project_dialog.cpp:95:77: error: subscripted value is not an array, pointer, or vector
+   95 |                 Button *btn = Object::cast_to<Button>(renderer_button_group->get_buttons()[i]);
+      |                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~
+editor\project_manager\project_dialog.cpp:1073:25: error: no matching conversion for functional-style cast from 'const char16_t *' to 'String'
+ 1073 |                         desc_label->set_text(String(mode_descs[i]));
+      |                                              ^~~~~~~~~~~~~~~~~~~~~
+.\core/string/ustring.h:642:17: note: candidate constructor not viable: no known conversion from 'const char16_t *' to 'const String' for 1st argument
+  642 |         _FORCE_INLINE_ String(const String &p_str) = default;
+      |                        ^      ~~~~~~~~~~~~~~~~~~~
+.\core/string/ustring.h:643:17: note: candidate constructor not viable: no known conversion from 'const char16_t *' to 'String' for 1st argument
+  643 |         _FORCE_INLINE_ String(String &&p_str) = default;
+      |                        ^      ~~~~~~~~~~~~~~
+.\core/string/ustring.h:658:2: note: candidate constructor not viable: no known conversion from 'const char16_t *' to 'const char *' for 1st argument
+  658 |         String(const char *p_cstr) {
+      |         ^      ~~~~~~~~~~~~~~~~~~
+.\core/string/ustring.h:661:2: note: candidate constructor not viable: no known conversion from 'const char16_t *' to 'const wchar_t *' for 1st argument
+  661 |         String(const wchar_t *p_cstr) {
+      |         ^      ~~~~~~~~~~~~~~~~~~~~~
+.\core/string/ustring.h:664:2: note: candidate constructor not viable: no known conversion from 'const char16_t *' to 'const char32_t *' for 1st argument
+  664 |         String(const char32_t *p_cstr) {
+      |         ^      ~~~~~~~~~~~~~~~~~~~~~~
+.\core/string/ustring.h:641:17: note: candidate constructor not viable: requires 0 arguments, but 1 was provided
+  641 |         _FORCE_INLINE_ String() {}
+      |                        ^
+5 errors generated.
+scons: *** [bin\obj\editor\project_manager\project_dialog.web.editor.wasm32.o] Error 1
+scons: building terminated because of errors.
+INFO: Time elapsed: 00:00:12.100

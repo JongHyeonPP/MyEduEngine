@@ -34,6 +34,7 @@
 #include "scene/gui/scroll_container.h"
 
 class CheckBox;
+class ColorRect;
 class EditorAbout;
 class EditorAssetLibrary;
 class EditorFileDialog;
@@ -179,6 +180,25 @@ class ProjectManager : public Control {
 	ConfirmationDialog *open_recovery_mode_ask = nullptr;
 
 	ProjectDialog *project_dialog = nullptr;
+
+	// DORO: Dark overlay for modal background (fullscreen)
+	ColorRect *doro_modal_overlay = nullptr;
+	void _show_doro_overlay();
+	void _hide_doro_overlay();
+	void _on_doro_overlay_clicked(const Ref<InputEvent> &p_event);
+
+	// DORO: Control-based new project popup (replaces Window-based dialog for MODE_NEW)
+	Control *doro_popup = nullptr;
+	PanelContainer *doro_popup_panel = nullptr;
+	VBoxContainer *doro_popup_container = nullptr;
+	PanelContainer *doro_mode_cards[4] = { nullptr, nullptr, nullptr, nullptr };
+	LineEdit *doro_popup_name = nullptr;
+	int doro_selected_mode = 0;
+	void _show_doro_popup();
+	void _hide_doro_popup();
+	void _doro_popup_mode_selected(const Ref<InputEvent> &p_event, int p_mode);
+	void _doro_popup_start_pressed();
+	void _update_doro_popup_card_styles();
 
 	void _scan_projects();
 	void _run_project();

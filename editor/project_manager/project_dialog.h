@@ -35,10 +35,13 @@
 class Button;
 class CheckBox;
 class CheckButton;
+class ColorRect;
 class EditorFileDialog;
 class LineEdit;
 class OptionButton;
+class PanelContainer;
 class TextureRect;
+class VBoxContainer;
 
 class ProjectDialog : public ConfirmationDialog {
 	GDCLASS(ProjectDialog, ConfirmationDialog);
@@ -50,6 +53,14 @@ public:
 		MODE_INSTALL,
 		MODE_RENAME,
 		MODE_DUPLICATE,
+	};
+
+	// DORO: Mode types for new project creation
+	enum DoroMode {
+		DORO_MODE_MODDER = 0,
+		DORO_MODE_BUILDER,
+		DORO_MODE_BRIDGER,
+		DORO_MODE_HACKER,
 	};
 
 private:
@@ -67,6 +78,20 @@ private:
 	Mode mode = MODE_NEW;
 	bool is_folder_empty = true;
 	ConfirmationDialog *nonempty_confirmation = nullptr;
+
+	// DORO: Mode selection UI
+	VBoxContainer *doro_container = nullptr;
+	PanelContainer *doro_mode_cards[4] = { nullptr, nullptr, nullptr, nullptr };
+	DoroMode selected_doro_mode = DORO_MODE_MODDER;
+	LineEdit *doro_project_name = nullptr;
+	Button *doro_start_button = nullptr;
+	ColorRect *doro_overlay = nullptr; // Dark overlay behind modal
+	void _doro_mode_selected(int p_mode);
+	void _doro_start_pressed();
+	void _update_doro_card_styles();
+	void _doro_input_gui_input(const Ref<InputEvent> &p_event); // For hiding placeholder on click
+	void _doro_overlay_clicked();
+	String doro_input_placeholder;
 
 	CheckButton *create_dir = nullptr;
 	Button *project_browse = nullptr;
@@ -152,6 +177,7 @@ public:
 
 	void ask_for_path_and_show();
 	void show_dialog(bool p_reset_name = true);
+	void create_project(); // DORO: Public method to trigger project creation
 
 	ProjectDialog();
 };

@@ -31,6 +31,7 @@
 #include "project_dialog.h"
 
 #include "core/config/project_settings.h"
+#include "core/input/input_event.h"
 #include "core/io/dir_access.h"
 #include "core/io/zip_io.h"
 #include "core/version.h"
@@ -40,12 +41,92 @@
 #include "editor/themes/editor_icons.h"
 #include "editor/themes/editor_scale.h"
 #include "editor/version_control/editor_vcs_interface.h"
+#include "scene/gui/center_container.h"
 #include "scene/gui/check_box.h"
 #include "scene/gui/check_button.h"
+#include "scene/gui/color_rect.h"
 #include "scene/gui/line_edit.h"
 #include "scene/gui/option_button.h"
+#include "scene/gui/panel_container.h"
 #include "scene/gui/separator.h"
 #include "scene/gui/texture_rect.h"
+#include "scene/resources/image_texture.h"
+#include "scene/resources/style_box_flat.h"
+
+// DORO: Mascot image data
+#include "doro_mascot_data.gen.h"
+
+// DORO: Update card styles based on selection
+void ProjectDialog::_update_doro_card_styles() {
+	for (int i = 0; i < 4; i++) {
+		if (doro_mode_cards[i] == nullptr) {
+			continue;
+		}
+		Ref<StyleBoxFlat> card_style;
+		card_style.instantiate();
+		card_style->set_bg_color(Color(1.0, 1.0, 1.0));
+		card_style->set_corner_radius_all(12);
+		card_style->set_content_margin_all(12);
+
+		if (i == (int)selected_doro_mode) {
+			// Selected: blue border
+			card_style->set_border_width_all(3);
+			card_style->set_border_color(Color(0.20, 0.45, 0.80)); // Blue
+		} else {
+			// Not selected: gray border
+			card_style->set_border_width_all(2);
+			card_style->set_border_color(Color(0.88, 0.90, 0.93));
+		}
+		doro_mode_cards[i]->add_theme_style_override("panel", card_style);
+	}
+}
+
+// DORO: Handle mode card click (receives InputEvent, but we bind the index)
+void ProjectDialog::_doro_mode_selected(int p_mode) {
+	selected_doro_mode = (DoroMode)p_mode;
+	_update_doro_card_styles();
+}
+
+// DORO: Hide placeholder when input is clicked (gui_input approach for Web compatibility)
+void ProjectDialog::_doro_input_gui_input(const Ref<InputEvent> &p_event) {
+	Ref<InputEventMouseButton> mb = p_event;
+	if (mb.is_valid() && mb->is_pressed() && mb->get_button_index() == MouseButton::LEFT) {
+		if (doro_project_name && !doro_input_placeholder.is_empty()) {
+			doro_project_name->set_placeholder(U"");
+		}
+	}
+}
+
+// DORO: Close modal when overlay is clicked - same as X button
+void ProjectDialog::_doro_overlay_clicked() {
+	hide(); // This is exactly what X button does
+}
+
+// DORO: Start button pressed
+void ProjectDialog::_doro_start_pressed() {
+	String name = doro_project_name->get_text().strip_edges();
+	if (name.is_empty()) {
+		name = U"새 프로젝트";
+	}
+
+	// Set project name for the actual creation
+	project_name->set_text(name);
+
+	// Use gl_compatibility renderer for DORO (web compatible)
+	List<BaseButton *> buttons;
+	renderer_button_group->get_buttons(&buttons);
+	for (BaseButton *base_btn : buttons) {
+		Button *btn = Object::cast_to<Button>(base_btn);
+		if (btn && btn->get_meta(SNAME("rendering_method")) == "gl_compatibility") {
+			btn->set_pressed(true);
+			_renderer_selected();
+			break;
+		}
+	}
+
+	// Trigger OK
+	ok_pressed();
+}
 
 void ProjectDialog::_set_message(const String &p_msg, MessageType p_type, InputType p_input_type) {
 	msg->set_text(p_msg);
@@ -807,6 +888,8 @@ void ProjectDialog::show_dialog(bool p_reset_name) {
 		project_status_rect->hide();
 		project_browse->hide();
 		edit_check_box->hide();
+		doro_container->hide(); // DORO: Hide mode selection UI
+		get_ok_button()->show(); // DORO: Show OK button
 
 		name_container->show();
 		install_path_container->hide();
@@ -857,16 +940,56 @@ void ProjectDialog::show_dialog(bool p_reset_name) {
 
 			// Project path dialog is also opened; no need to change focus.
 		} else if (mode == MODE_NEW) {
-			set_title(TTRC("Create New Project"));
-			set_ok_button_text(TTRC("Create"));
+			// DORO: RADICAL - Override ALL Window styles to be transparent
+			// The doro_overlay inside provides the semi-transparent background
 
-			name_container->show();
+			set_title(U""); // Empty title
+			get_ok_button()->hide();
+			get_cancel_button()->hide();
+
+			// DORO: Make window fullscreen
+			Size2 screen_size = DisplayServer::get_singleton()->window_get_size();
+			set_size(screen_size);
+			set_position(Point2(0, 0));
+
+			// DORO: Create TRANSPARENT style for ALL window parts
+			Ref<StyleBoxFlat> transparent;
+			transparent.instantiate();
+			transparent->set_bg_color(Color(0, 0, 0, 0)); // FULLY TRANSPARENT
+			transparent->set_border_width_all(0);
+			transparent->set_content_margin_all(0);
+
+			// Override EVERYTHING
+			add_theme_style_override("panel", transparent);
+			add_theme_style_override("embedded_border", transparent);
+			add_theme_style_override("embedded_unfocused_border", transparent);
+
+			// Hide close button
+			set_flag(Window::FLAG_NO_FOCUS, false);
+
+			// DORO: Show the internal overlay (this provides semi-transparent background)
+			if (doro_overlay) {
+				doro_overlay->show();
+			}
+
+			// Show DORO UI
+			doro_container->show();
+			doro_project_name->set_text(U"");
+			doro_input_placeholder = doro_project_name->get_placeholder(); // Store placeholder
+			_update_doro_card_styles();
+
+			// Hide default UI elements
+			name_container->hide();
+			project_path_container->hide();
 			install_path_container->hide();
-			renderer_container->show();
-			default_files_container->show();
+			renderer_container->hide();
+			default_files_container->hide();
+			create_dir->hide();
+			project_browse->hide();
+			edit_check_box->hide();
+			msg->hide(); // Hide error/status message
 
-			callable_mp((Control *)project_name, &Control::grab_focus).call_deferred();
-			callable_mp(project_name, &LineEdit::select_all).call_deferred();
+			// Don't auto-focus the input to avoid showing cursor on placeholder
 		} else if (mode == MODE_INSTALL) {
 			set_title(TTR("Install Project:") + " " + zip_title);
 			set_ok_button_text(TTRC("Install"));
@@ -906,7 +1029,12 @@ void ProjectDialog::show_dialog(bool p_reset_name) {
 
 	_validate_path();
 
-	popup_centered(Size2(500, 0) * EDSCALE);
+	// DORO: Larger modal for MODE_NEW with mode selection
+	if (mode == MODE_NEW) {
+		popup_centered(Size2(700, 0) * EDSCALE); // Compact modal for mode selection
+	} else {
+		popup_centered(Size2(500, 0) * EDSCALE);
+	}
 }
 
 void ProjectDialog::_notification(int p_what) {
@@ -922,14 +1050,20 @@ void ProjectDialog::_notification(int p_what) {
 		} break;
 		case NOTIFICATION_READY: {
 			fdialog_project = memnew(EditorFileDialog);
-			fdialog_project->set_previews_enabled(false); // Crucial, otherwise the engine crashes.
+			fdialog_project->set_previews_enabled(false);
 			fdialog_project->set_access(EditorFileDialog::ACCESS_FILESYSTEM);
 			fdialog_project->connect("dir_selected", callable_mp(this, &ProjectDialog::_project_path_selected));
 			fdialog_project->connect("file_selected", callable_mp(this, &ProjectDialog::_project_path_selected));
 			fdialog_project->connect("canceled", callable_mp(this, &ProjectDialog::show_dialog).bind(false), CONNECT_DEFERRED);
 			callable_mp((Node *)this, &Node::add_sibling).call_deferred(fdialog_project, false);
+			// Note: doro_overlay is now created in constructor
 		} break;
 	}
+}
+
+// DORO: Public method to trigger project creation
+void ProjectDialog::create_project() {
+	ok_pressed();
 }
 
 void ProjectDialog::_bind_methods() {
@@ -939,8 +1073,201 @@ void ProjectDialog::_bind_methods() {
 }
 
 ProjectDialog::ProjectDialog() {
+	// DORO: RADICAL RESTRUCTURE - overlay fills the whole dialog, content is centered inside
+
+	// 1. Create dark overlay FIRST - covers entire dialog area
+	doro_overlay = memnew(ColorRect);
+	doro_overlay->set_color(Color(0.0, 0.0, 0.0, 0.5)); // Semi-transparent black
+	doro_overlay->set_anchors_preset(Control::PRESET_FULL_RECT);
+	doro_overlay->set_mouse_filter(Control::MOUSE_FILTER_STOP); // Capture clicks
+	doro_overlay->hide(); // Initially hidden
+	doro_overlay->connect("gui_input", callable_mp(this, &ProjectDialog::_doro_overlay_clicked).unbind(1));
+	add_child(doro_overlay);
+
+	// 2. CenterContainer to center the content panel
+	CenterContainer *center = memnew(CenterContainer);
+	center->set_anchors_preset(Control::PRESET_FULL_RECT);
+	center->set_mouse_filter(Control::MOUSE_FILTER_PASS); // Pass to children, not overlay
+	add_child(center);
+
+	// 3. Main content VBoxContainer inside CenterContainer
 	VBoxContainer *vb = memnew(VBoxContainer);
-	add_child(vb);
+	vb->set_mouse_filter(Control::MOUSE_FILTER_PASS); // Pass to children
+	center->add_child(vb);
+
+	// DORO: Mode selection UI (only shown for MODE_NEW)
+	{
+		// DORO: Light background wrapper for the entire modal content
+		PanelContainer *doro_bg_panel = memnew(PanelContainer);
+		{
+			Ref<StyleBoxFlat> bg_style;
+			bg_style.instantiate();
+			bg_style->set_bg_color(Color(0.96, 0.97, 0.99)); // Very light gray
+			bg_style->set_corner_radius_all(12);
+			bg_style->set_content_margin_all(16); // Normal padding
+			doro_bg_panel->add_theme_style_override("panel", bg_style);
+		}
+		doro_bg_panel->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
+		vb->add_child(doro_bg_panel);
+
+		doro_container = memnew(VBoxContainer);
+		doro_container->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		doro_container->add_theme_constant_override("separation", 16 * EDSCALE);
+		doro_bg_panel->add_child(doro_container);
+
+		// Title: "무엇을 만들어볼까요?"
+		Label *doro_title = memnew(Label);
+		doro_title->set_text(U"무엇을 만들어볼까요?");
+		doro_title->set_horizontal_alignment(HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
+		doro_title->add_theme_font_size_override(SceneStringName(font_size), 24 * EDSCALE);
+		doro_title->add_theme_color_override(SceneStringName(font_color), Color(0.10, 0.21, 0.36)); // #1A365D dark blue
+		doro_container->add_child(doro_title);
+
+		// Mode cards container (horizontal)
+		HBoxContainer *cards_hbox = memnew(HBoxContainer);
+		cards_hbox->set_alignment(BoxContainer::ALIGNMENT_CENTER);
+		cards_hbox->add_theme_constant_override("separation", 20 * EDSCALE); // Wider spacing
+		doro_container->add_child(cards_hbox);
+
+		// Mode card data
+		const char *mode_names[] = { "MODDER", "BUILDER", "BRIDGER", "HACKER" };
+		const char32_t *mode_descs[] = {
+			U"숫자를 바꿔가며\n게임을 고쳐봐요",
+			U"이벤트와 조건으로\n게임을 만들어요",
+			U"블록과 코드가\n서로 연결돼요",
+			U"진짜 코드로\n자유롭게 개발해요"
+		};
+		// DORO: Mode-specific colors
+		const Color mode_colors[] = {
+			Color(0.30, 0.55, 0.85), // MODDER: Blue
+			Color(0.20, 0.70, 0.45), // BUILDER: Green
+			Color(0.75, 0.55, 0.25), // BRIDGER: Orange
+			Color(0.65, 0.35, 0.70) // HACKER: Purple
+		};
+
+		for (int i = 0; i < 4; i++) {
+			// DORO: Use Control as container with fixed size, then put PanelContainer inside
+			Control *card_wrapper = memnew(Control);
+			card_wrapper->set_custom_minimum_size(Size2(120, 80) * EDSCALE); // Reasonable card size
+			card_wrapper->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
+			card_wrapper->set_v_size_flags(Control::SIZE_SHRINK_CENTER);
+
+			PanelContainer *card = memnew(PanelContainer);
+			card->set_anchors_preset(Control::PRESET_FULL_RECT);
+			card->set_clip_contents(true);
+
+			// Card style - white with subtle border
+			Ref<StyleBoxFlat> card_style;
+			card_style.instantiate();
+			card_style->set_bg_color(Color(1.0, 1.0, 1.0));
+			card_style->set_corner_radius_all(8);
+			card_style->set_border_width_all(2);
+			card_style->set_border_color(Color(0.85, 0.88, 0.92));
+			card_style->set_content_margin_all(8);
+			card->add_theme_style_override("panel", card_style);
+
+			VBoxContainer *card_content = memnew(VBoxContainer);
+			card_content->set_alignment(BoxContainer::ALIGNMENT_CENTER);
+			card_content->add_theme_constant_override("separation", 4 * EDSCALE);
+			card->add_child(card_content);
+
+			// Mode name - smaller font to fit in card
+			Label *name_label = memnew(Label);
+			name_label->set_text(mode_names[i]);
+			name_label->set_horizontal_alignment(HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
+			name_label->add_theme_font_size_override(SceneStringName(font_size), 14 * EDSCALE);
+			name_label->add_theme_color_override(SceneStringName(font_color), mode_colors[i]); // Mode-specific color
+			card_content->add_child(name_label);
+
+			// Mode description - much smaller font
+			Label *desc_label = memnew(Label);
+			desc_label->set_text(String(mode_descs[i]));
+			desc_label->set_horizontal_alignment(HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
+			desc_label->add_theme_font_size_override(SceneStringName(font_size), 10 * EDSCALE);
+			desc_label->add_theme_color_override(SceneStringName(font_color), Color(0.35, 0.40, 0.50)); // Darker gray
+			card_content->add_child(desc_label);
+
+			doro_mode_cards[i] = card;
+			card_wrapper->add_child(card);
+			cards_hbox->add_child(card_wrapper);
+
+			// Click handler using gui_input - unbind the InputEvent, bind the index
+			card->connect("gui_input", callable_mp(this, &ProjectDialog::_doro_mode_selected).unbind(1).bind(i));
+		}
+
+		// Project name input
+		VBoxContainer *name_input_vbox = memnew(VBoxContainer);
+		name_input_vbox->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
+		doro_container->add_child(name_input_vbox);
+
+		doro_project_name = memnew(LineEdit);
+		doro_project_name->set_placeholder(U"선택한 모드로 만들 작품 이름을 입력하세요");
+		doro_project_name->set_custom_minimum_size(Size2(400 * EDSCALE, 36 * EDSCALE)); // Very compact
+
+		// DORO: White background style for input - normal state
+		{
+			Ref<StyleBoxFlat> input_normal;
+			input_normal.instantiate();
+			input_normal->set_bg_color(Color(1.0, 1.0, 1.0)); // White
+			input_normal->set_corner_radius_all(8);
+			input_normal->set_border_width_all(1);
+			input_normal->set_border_color(Color(0.85, 0.88, 0.92)); // Gray border
+			input_normal->set_content_margin(Side::SIDE_LEFT, 16);
+			input_normal->set_content_margin(Side::SIDE_RIGHT, 16);
+			input_normal->set_content_margin(Side::SIDE_TOP, 12);
+			input_normal->set_content_margin(Side::SIDE_BOTTOM, 12);
+			doro_project_name->add_theme_style_override("normal", input_normal);
+
+			// Focus state - blue border for visual feedback
+			Ref<StyleBoxFlat> input_focus;
+			input_focus.instantiate();
+			input_focus->set_bg_color(Color(1.0, 1.0, 1.0));
+			input_focus->set_corner_radius_all(8);
+			input_focus->set_border_width_all(2);
+			input_focus->set_border_color(Color(0.35, 0.60, 0.85)); // Blue border on focus
+			input_focus->set_content_margin(Side::SIDE_LEFT, 16);
+			input_focus->set_content_margin(Side::SIDE_RIGHT, 16);
+			input_focus->set_content_margin(Side::SIDE_TOP, 12);
+			input_focus->set_content_margin(Side::SIDE_BOTTOM, 12);
+			doro_project_name->add_theme_style_override("focus", input_focus);
+		}
+		doro_project_name->add_theme_color_override("font_color", Color(0.2, 0.25, 0.3));
+		doro_project_name->add_theme_color_override("font_placeholder_color", Color(0.5, 0.55, 0.6));
+		doro_project_name->set_horizontal_alignment(HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
+		doro_project_name->set_focus_mode(Control::FOCUS_CLICK);
+		// DORO: Connect gui_input to hide placeholder on click (Web compatible)
+		doro_project_name->connect("gui_input", callable_mp(this, &ProjectDialog::_doro_input_gui_input));
+		name_input_vbox->add_child(doro_project_name);
+
+		// Start button
+		doro_start_button = memnew(Button);
+		doro_start_button->set_text(U"이 모드로 시작하기");
+		doro_start_button->set_custom_minimum_size(Size2(280 * EDSCALE, 52 * EDSCALE)); // Slightly larger
+		doro_start_button->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
+		doro_start_button->connect(SceneStringName(pressed), callable_mp(this, &ProjectDialog::_doro_start_pressed));
+
+		// Button style (blue pill - matching original design color)
+		Ref<StyleBoxFlat> btn_style;
+		btn_style.instantiate();
+		btn_style->set_bg_color(Color(0.35, 0.60, 0.85)); // #5A9AD9 brighter blue like original
+		btn_style->set_corner_radius_all(26);
+		btn_style->set_content_margin(Side::SIDE_LEFT, 40);
+		btn_style->set_content_margin(Side::SIDE_RIGHT, 40);
+		btn_style->set_content_margin(Side::SIDE_TOP, 14);
+		btn_style->set_content_margin(Side::SIDE_BOTTOM, 14);
+		doro_start_button->add_theme_style_override("normal", btn_style);
+		doro_start_button->add_theme_style_override("hover", btn_style);
+		doro_start_button->add_theme_style_override("pressed", btn_style);
+		doro_start_button->add_theme_style_override("focus", btn_style); // Remove focus border
+		doro_start_button->set_focus_mode(Control::FOCUS_NONE); // Disable focus entirely
+		doro_start_button->add_theme_color_override(SceneStringName(font_color), Color(1.0, 1.0, 1.0));
+		doro_start_button->add_theme_font_size_override(SceneStringName(font_size), 20 * EDSCALE);
+
+		doro_container->add_child(doro_start_button);
+
+		// Initially hidden (will be shown in show_dialog for MODE_NEW)
+		doro_container->hide();
+	}
 
 	name_container = memnew(VBoxContainer);
 	vb->add_child(name_container);

@@ -1,0 +1,14 @@
+scons: Reading SConscript files ...
+INFO: Forcing `initial_memory=64` as it is required for the web editor.
+Building for platform "web", architecture "wasm32", target "editor".
+Using LTO: thin
+scons: done reading SConscript files.
+scons: Building targets ...
+Compiling editor\project_manager\project_dialog.cpp ...
+editor\project_manager\project_dialog.cpp:1051:18: error: no member named 'set_custom_maximum_size' in 'PanelContainer'
+ 1051 |                 doro_bg_panel->set_custom_maximum_size(Size2(580, 0) * EDSCALE); // Force max width
+      |                 ~~~~~~~~~~~~~  ^
+1 error generated.
+scons: *** [bin\obj\editor\project_manager\project_dialog.web.editor.wasm32.o] Error 1
+scons: building terminated because of errors.
+INFO: Time elapsed: 00:00:12.30

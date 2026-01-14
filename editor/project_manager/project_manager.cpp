@@ -73,6 +73,8 @@
 // DORO: Embedded font data
 #include "doro_font_bold_data.gen.h"
 #include "doro_font_data.gen.h"
+#include "scene/gui/center_container.h"
+#include "scene/gui/color_rect.h"
 #include "scene/resources/font.h"
 
 #ifndef PHYSICS_3D_DISABLED
@@ -109,6 +111,156 @@ void ProjectManager::_notification(int p_what) {
 			const int default_sorting = (int)EDITOR_GET("project_manager/sorting_order");
 			filter_option->select(default_sorting);
 			project_list->set_order_option(default_sorting);
+
+			// DORO: Create fullscreen dark overlay for modal background
+			doro_modal_overlay = memnew(ColorRect);
+			doro_modal_overlay->set_color(Color(0.0, 0.0, 0.0, 0.5)); // Semi-transparent black
+			doro_modal_overlay->set_anchors_preset(Control::PRESET_FULL_RECT);
+			doro_modal_overlay->set_mouse_filter(Control::MOUSE_FILTER_STOP); // Capture clicks
+			doro_modal_overlay->hide(); // Initially hidden
+			doro_modal_overlay->connect("gui_input", callable_mp(this, &ProjectManager::_on_doro_overlay_clicked));
+			add_child(doro_modal_overlay);
+
+			// DORO: Create Control-based popup (NO Window, NO embedded_border!)
+			doro_popup = memnew(Control);
+			doro_popup->set_anchors_preset(Control::PRESET_FULL_RECT);
+			doro_popup->set_mouse_filter(Control::MOUSE_FILTER_IGNORE); // Let clicks pass through to overlay
+			doro_popup->hide();
+			add_child(doro_popup);
+
+			// Center container for the popup panel
+			CenterContainer *popup_center = memnew(CenterContainer);
+			popup_center->set_anchors_preset(Control::PRESET_FULL_RECT);
+			popup_center->set_mouse_filter(Control::MOUSE_FILTER_IGNORE); // Let clicks pass to overlay
+			doro_popup->add_child(popup_center);
+
+			// White panel
+			doro_popup_panel = memnew(PanelContainer);
+			doro_popup_panel->set_mouse_filter(Control::MOUSE_FILTER_STOP); // Block clicks to overlay
+			{
+				Ref<StyleBoxFlat> panel_style;
+				panel_style.instantiate();
+				panel_style->set_bg_color(Color(0.96, 0.97, 0.99)); // Light gray
+				panel_style->set_corner_radius_all(16);
+				panel_style->set_content_margin_all(24);
+				// Shadow
+				panel_style->set_shadow_color(Color(0, 0, 0, 0.15));
+				panel_style->set_shadow_size(20);
+				panel_style->set_shadow_offset(Vector2(0, 8));
+				doro_popup_panel->add_theme_style_override("panel", panel_style);
+			}
+			popup_center->add_child(doro_popup_panel);
+
+			// Popup content VBox
+			doro_popup_container = memnew(VBoxContainer);
+			doro_popup_container->add_theme_constant_override("separation", 20 * EDSCALE);
+			doro_popup_panel->add_child(doro_popup_container);
+
+			// Title
+			Label *popup_title = memnew(Label);
+			popup_title->set_text(U"무엇을 만들어볼까요?");
+			popup_title->set_horizontal_alignment(HORIZONTAL_ALIGNMENT_CENTER);
+			popup_title->add_theme_font_size_override(SceneStringName(font_size), 28 * EDSCALE);
+			popup_title->add_theme_color_override(SceneStringName(font_color), Color(0.10, 0.21, 0.36));
+			doro_popup_container->add_child(popup_title);
+
+			// Mode cards HBox
+			HBoxContainer *cards_hbox = memnew(HBoxContainer);
+			cards_hbox->set_alignment(BoxContainer::ALIGNMENT_CENTER);
+			cards_hbox->add_theme_constant_override("separation", 16 * EDSCALE);
+			doro_popup_container->add_child(cards_hbox);
+
+			const char *mode_names[] = { "MODDER", "BUILDER", "BRIDGER", "HACKER" };
+			const char32_t *mode_descs[] = {
+				U"숫자를 바꿔가며\n게임을 고쳐봐요",
+				U"이벤트와 조건으로\n게임을 만들어요",
+				U"블록과 코드가\n서로 연결돼요",
+				U"진짜 코드로\n자유롭게 개발해요"
+			};
+			const Color mode_colors[] = {
+				Color(0.30, 0.55, 0.85),
+				Color(0.20, 0.70, 0.45),
+				Color(0.75, 0.55, 0.25),
+				Color(0.65, 0.35, 0.70)
+			};
+
+			for (int i = 0; i < 4; i++) {
+				PanelContainer *card = memnew(PanelContainer);
+				card->set_custom_minimum_size(Size2(130, 90) * EDSCALE);
+				{
+					Ref<StyleBoxFlat> card_style;
+					card_style.instantiate();
+					card_style->set_bg_color(Color(1, 1, 1));
+					card_style->set_corner_radius_all(12);
+					card_style->set_border_width_all(2);
+					card_style->set_border_color(Color(0.88, 0.90, 0.93));
+					card_style->set_content_margin_all(12);
+					card->add_theme_style_override("panel", card_style);
+				}
+
+				VBoxContainer *card_content = memnew(VBoxContainer);
+				card_content->set_alignment(BoxContainer::ALIGNMENT_CENTER);
+				card_content->add_theme_constant_override("separation", 4 * EDSCALE);
+				card->add_child(card_content);
+
+				Label *name_label = memnew(Label);
+				name_label->set_text(mode_names[i]);
+				name_label->set_horizontal_alignment(HORIZONTAL_ALIGNMENT_CENTER);
+				name_label->add_theme_font_size_override(SceneStringName(font_size), 16 * EDSCALE);
+				name_label->add_theme_color_override(SceneStringName(font_color), mode_colors[i]);
+				card_content->add_child(name_label);
+
+				Label *desc_label = memnew(Label);
+				desc_label->set_text(String(mode_descs[i]));
+				desc_label->set_horizontal_alignment(HORIZONTAL_ALIGNMENT_CENTER);
+				desc_label->add_theme_font_size_override(SceneStringName(font_size), 11 * EDSCALE);
+				desc_label->add_theme_color_override(SceneStringName(font_color), Color(0.4, 0.45, 0.55));
+				card_content->add_child(desc_label);
+
+				card->connect("gui_input", callable_mp(this, &ProjectManager::_doro_popup_mode_selected).bind(i));
+				cards_hbox->add_child(card);
+				doro_mode_cards[i] = card;
+			}
+
+			// Project name input
+			doro_popup_name = memnew(LineEdit);
+			doro_popup_name->set_placeholder(U"선택한 모드로 만들 작품 이름을 입력하세요");
+			doro_popup_name->set_custom_minimum_size(Size2(400 * EDSCALE, 40 * EDSCALE));
+			doro_popup_name->set_horizontal_alignment(HORIZONTAL_ALIGNMENT_CENTER);
+			{
+				Ref<StyleBoxFlat> input_style;
+				input_style.instantiate();
+				input_style->set_bg_color(Color(1, 1, 1));
+				input_style->set_corner_radius_all(8);
+				input_style->set_border_width_all(1);
+				input_style->set_border_color(Color(0.85, 0.87, 0.90));
+				input_style->set_content_margin(SIDE_LEFT, 12);
+				input_style->set_content_margin(SIDE_RIGHT, 12);
+				doro_popup_name->add_theme_style_override("normal", input_style);
+			}
+			// Font color - dark like project search
+			doro_popup_name->add_theme_color_override(SceneStringName(font_color), Color(0.10, 0.21, 0.36)); // Dark blue
+			doro_popup_name->add_theme_color_override("font_placeholder_color", Color(0.5, 0.55, 0.6)); // Gray placeholder
+			doro_popup_container->add_child(doro_popup_name);
+
+			// Start button
+			Button *start_btn = memnew(Button);
+			start_btn->set_text(U"이 모드로 시작하기");
+			start_btn->set_custom_minimum_size(Size2(200 * EDSCALE, 44 * EDSCALE));
+			start_btn->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
+			{
+				Ref<StyleBoxFlat> btn_style;
+				btn_style.instantiate();
+				btn_style->set_bg_color(Color(0.20, 0.47, 0.85)); // Blue
+				btn_style->set_corner_radius_all(8);
+				btn_style->set_content_margin_all(12);
+				start_btn->add_theme_style_override("normal", btn_style);
+				start_btn->add_theme_style_override("hover", btn_style);
+				start_btn->add_theme_style_override("pressed", btn_style);
+				start_btn->add_theme_color_override(SceneStringName(font_color), Color(1, 1, 1));
+			}
+			start_btn->connect(SceneStringName(pressed), callable_mp(this, &ProjectManager::_doro_popup_start_pressed));
+			doro_popup_container->add_child(start_btn);
 
 			_select_main_view(MAIN_VIEW_PROJECTS);
 			_update_list_placeholder();
@@ -744,9 +896,108 @@ void ProjectManager::_import_project() {
 	project_dialog->ask_for_path_and_show();
 }
 
-void ProjectManager::_new_project() {
+// DORO: Show dark overlay behind modal
+void ProjectManager::_show_doro_overlay() {
+	if (doro_modal_overlay) {
+		doro_modal_overlay->show();
+	}
+}
+
+// DORO: Hide dark overlay
+void ProjectManager::_hide_doro_overlay() {
+	if (doro_modal_overlay) {
+		doro_modal_overlay->hide();
+	}
+}
+
+// DORO: Overlay clicked - close popup and overlay
+void ProjectManager::_on_doro_overlay_clicked(const Ref<InputEvent> &p_event) {
+	Ref<InputEventMouseButton> mb = p_event;
+	if (mb.is_valid() && mb->is_pressed() && mb->get_button_index() == MouseButton::LEFT) {
+		_hide_doro_popup();
+	}
+}
+
+// DORO: Show the Control-based popup
+void ProjectManager::_show_doro_popup() {
+	_show_doro_overlay();
+	if (doro_popup) {
+		doro_selected_mode = 0;
+		_update_doro_popup_card_styles();
+		if (doro_popup_name) {
+			doro_popup_name->set_text("");
+		}
+		doro_popup->show();
+	}
+}
+
+// DORO: Hide the Control-based popup
+void ProjectManager::_hide_doro_popup() {
+	_hide_doro_overlay();
+	if (doro_popup) {
+		doro_popup->hide();
+	}
+}
+
+// DORO: Mode card clicked
+void ProjectManager::_doro_popup_mode_selected(const Ref<InputEvent> &p_event, int p_mode) {
+	Ref<InputEventMouseButton> mb = p_event;
+	if (mb.is_valid() && mb->is_pressed() && mb->get_button_index() == MouseButton::LEFT) {
+		doro_selected_mode = p_mode;
+		_update_doro_popup_card_styles();
+	}
+}
+
+// DORO: Update card styles based on selection
+void ProjectManager::_update_doro_popup_card_styles() {
+	for (int i = 0; i < 4; i++) {
+		PanelContainer *card = doro_mode_cards[i];
+		if (!card) {
+			continue;
+		}
+		Ref<StyleBoxFlat> style;
+		style.instantiate();
+		style->set_bg_color(Color(1, 1, 1));
+		style->set_corner_radius_all(12);
+		style->set_content_margin_all(12);
+		if (i == doro_selected_mode) {
+			style->set_border_width_all(3);
+			style->set_border_color(Color(0.20, 0.47, 0.85)); // Blue
+		} else {
+			style->set_border_width_all(2);
+			style->set_border_color(Color(0.88, 0.90, 0.93));
+		}
+		card->add_theme_style_override("panel", style);
+	}
+}
+
+// DORO: Start button pressed
+void ProjectManager::_doro_popup_start_pressed() {
+	String name = doro_popup_name ? doro_popup_name->get_text().strip_edges() : "";
+	if (name.is_empty()) {
+		name = U"새 프로젝트";
+	}
+
+	_hide_doro_popup();
+
+	// Set default path (same as show_dialog does)
+	String fav_dir = EDITOR_GET("filesystem/directories/default_project_path");
+	fav_dir = fav_dir.simplify_path();
+	if (fav_dir.is_empty()) {
+		Ref<DirAccess> d = DirAccess::create(DirAccess::ACCESS_FILESYSTEM);
+		fav_dir = d->get_current_dir();
+	}
+
+	// Use ProjectDialog for actual project creation
 	project_dialog->set_mode(ProjectDialog::MODE_NEW);
-	project_dialog->show_dialog();
+	project_dialog->set_project_name(name);
+	project_dialog->set_project_path(fav_dir);
+	project_dialog->create_project();
+}
+
+void ProjectManager::_new_project() {
+	// DORO: Use Control-based popup instead of Window-based ProjectDialog
+	_show_doro_popup();
 }
 
 void ProjectManager::_rename_project() {
@@ -1695,7 +1946,7 @@ ProjectManager::ProjectManager() {
 
 			project_list_panel = memnew(PanelContainer);
 			// DORO: Limited width and center alignment for project list container
-			project_list_panel->set_custom_minimum_size(Size2(1100 * EDSCALE, 0)); // Wider for better layout
+			project_list_panel->set_custom_minimum_size(Size2(800 * EDSCALE, 0)); // For 2x3 grid with 240px cards
 			project_list_panel->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
 
 			// DORO: White box styling - rounded corners, padding, shadow

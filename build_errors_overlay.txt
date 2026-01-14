@@ -1,0 +1,195 @@
+scons: Reading SConscript files ...
+INFO: Forcing `initial_memory=64` as it is required for the web editor.
+Building for platform "web", architecture "wasm32", target "editor".
+Using LTO: thin
+scons: done reading SConscript files.
+scons: Building targets ...
+Compiling editor\project_manager\project_dialog.cpp ...
+In file included from editor\project_manager\project_dialog.cpp:31:
+editor\project_manager\project_dialog.h:87:2: error: unknown type name 'ColorRect'
+   87 |         ColorRect *doro_overlay = nullptr; // Dark overlay behind modal
+      |         ^
+editor\project_manager\project_dialog.h:46:2: error: cannot initialize object parameter of type 'const ConfirmationDialog' with an expression of type 'const ProjectDialog'
+   46 |         GDCLASS(ProjectDialog, ConfirmationDialog);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:498:2: note: expanded from macro 'GDCLASS'
+  498 |         GDSOFTCLASS(m_class, m_inherits)                                                                                                        \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:419:59: note: expanded from macro 'GDSOFTCLASS'
+  419 |                 return (p_ptr == get_class_ptr_static()) || m_inherits::is_class_ptr(p_ptr);                             \
+      |                                                                         ^~~~~~~~~~~~
+In file included from editor\project_manager\project_dialog.cpp:31:
+editor\project_manager\project_dialog.h:46:2: error: cannot initialize object parameter of type 'const ConfirmationDialog' with an expression of type 'const ProjectDialog'
+   46 |         GDCLASS(ProjectDialog, ConfirmationDialog);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:498:2: note: expanded from macro 'GDCLASS'
+  498 |         GDSOFTCLASS(m_class, m_inherits)                                                                                                        \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:427:42: note: expanded from macro 'GDSOFTCLASS'
+  427 |                 if (m_class::_get_get() != m_inherits::_get_get()) {                                                     \
+      |                                                        ^~~~~~~~
+In file included from editor\project_manager\project_dialog.cpp:31:
+editor\project_manager\project_dialog.h:46:2: error: cannot initialize object parameter of type 'const Window' with an expression of type 'const ProjectDialog'
+   46 |         GDCLASS(ProjectDialog, ConfirmationDialog);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:498:2: note: expanded from macro 'GDCLASS'
+  498 |         GDSOFTCLASS(m_class, m_inherits)                                                                                                        \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:428:8: note: expanded from macro 'GDSOFTCLASS'
+  428 |                         if (_get(p_name, r_ret)) {                                                                           \
+      |                             ^~~~
+In file included from editor\project_manager\project_dialog.cpp:31:
+editor\project_manager\project_dialog.h:46:2: error: cannot initialize object parameter of type 'const ConfirmationDialog' with an expression of type 'const ProjectDialog'
+   46 |         GDCLASS(ProjectDialog, ConfirmationDialog);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:498:2: note: expanded from macro 'GDCLASS'
+  498 |         GDSOFTCLASS(m_class, m_inherits)                                                                                                        \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:432:22: note: expanded from macro 'GDSOFTCLASS'
+  432 |                 return m_inherits::_getv(p_name, r_ret);                                                                 \
+      |                                    ^~~~~
+In file included from editor\project_manager\project_dialog.cpp:31:
+editor\project_manager\project_dialog.h:46:2: error: cannot initialize object parameter of type 'ConfirmationDialog' with an expression of type 'ProjectDialog'
+   46 |         GDCLASS(ProjectDialog, ConfirmationDialog);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:498:2: note: expanded from macro 'GDCLASS'
+  498 |         GDSOFTCLASS(m_class, m_inherits)                                                                                                        \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:438:19: note: expanded from macro 'GDSOFTCLASS'
+  438 |                 if (m_inherits::_setv(p_name, p_property)) {                                                             \
+      |                                 ^~~~~
+In file included from editor\project_manager\project_dialog.cpp:31:
+editor\project_manager\project_dialog.h:46:2: error: cannot initialize object parameter of type 'const ConfirmationDialog' with an expression of type 'ProjectDialog'
+   46 |         GDCLASS(ProjectDialog, ConfirmationDialog);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:498:2: note: expanded from macro 'GDCLASS'
+  498 |         GDSOFTCLASS(m_class, m_inherits)                                                                                                        \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:441:42: note: expanded from macro 'GDSOFTCLASS'
+  441 |                 if (m_class::_get_set() != m_inherits::_get_set()) {                                                     \
+      |                                                        ^~~~~~~~
+In file included from editor\project_manager\project_dialog.cpp:31:
+editor\project_manager\project_dialog.h:46:2: error: cannot initialize object parameter of type 'Window' with an expression of type 'ProjectDialog'
+   46 |         GDCLASS(ProjectDialog, ConfirmationDialog);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:498:2: note: expanded from macro 'GDCLASS'
+  498 |         GDSOFTCLASS(m_class, m_inherits)                                                                                                        \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:442:11: note: expanded from macro 'GDSOFTCLASS'
+  442 |                         return _set(p_name, p_property);                                                                     \
+      |                                ^~~~
+In file included from editor\project_manager\project_dialog.cpp:31:
+editor\project_manager\project_dialog.h:46:2: error: cannot initialize object parameter of type 'const ConfirmationDialog' with an expression of type 'const ProjectDialog'
+   46 |         GDCLASS(ProjectDialog, ConfirmationDialog);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:498:2: note: expanded from macro 'GDCLASS'
+  498 |         GDSOFTCLASS(m_class, m_inherits)                                                                                                        \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:450:15: note: expanded from macro 'GDSOFTCLASS'
+  450 |                 m_inherits::_validate_propertyv(p_property);                                                             \
+      |                             ^~~~~~~~~~~~~~~~~~~
+In file included from editor\project_manager\project_dialog.cpp:31:
+editor\project_manager\project_dialog.h:46:2: error: cannot initialize object parameter of type 'const ConfirmationDialog' with an expression of type 'const ProjectDialog'
+   46 |         GDCLASS(ProjectDialog, ConfirmationDialog);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:498:2: note: expanded from macro 'GDCLASS'
+  498 |         GDSOFTCLASS(m_class, m_inherits)                                                                                                        \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:451:56: note: expanded from macro 'GDSOFTCLASS'
+  451 |                 if (m_class::_get_validate_property() != m_inherits::_get_validate_property()) {                         \
+      |                                                                      ^~~~~~~~~~~~~~~~~~~~~~
+In file included from editor\project_manager\project_dialog.cpp:31:
+editor\project_manager\project_dialog.h:46:2: error: cannot initialize object parameter of type 'const AcceptDialog' with an expression of type 'const ProjectDialog'
+   46 |         GDCLASS(ProjectDialog, ConfirmationDialog);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:498:2: note: expanded from macro 'GDCLASS'
+  498 |         GDSOFTCLASS(m_class, m_inherits)                                                                                                        \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:452:4: note: expanded from macro 'GDSOFTCLASS'
+  452 |                         _validate_property(p_property);                                                                      \
+      |                         ^~~~~~~~~~~~~~~~~~
+In file included from editor\project_manager\project_dialog.cpp:31:
+editor\project_manager\project_dialog.h:46:2: error: cannot initialize object parameter of type 'const ConfirmationDialog' with an expression of type 'const ProjectDialog'
+   46 |         GDCLASS(ProjectDialog, ConfirmationDialog);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:498:2: note: expanded from macro 'GDCLASS'
+  498 |         GDSOFTCLASS(m_class, m_inherits)                                                                                                        \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:459:58: note: expanded from macro 'GDSOFTCLASS'
+  459 |                 if (m_class::_get_property_can_revert() != m_inherits::_get_property_can_revert()) {                     \
+      |                                                                        ^~~~~~~~~~~~~~~~~~~~~~~~
+In file included from editor\project_manager\project_dialog.cpp:31:
+editor\project_manager\project_dialog.h:46:2: error: cannot initialize object parameter of type 'const Object' with an expression of type 'const ProjectDialog'
+   46 |         GDCLASS(ProjectDialog, ConfirmationDialog);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:498:2: note: expanded from macro 'GDCLASS'
+  498 |         GDSOFTCLASS(m_class, m_inherits)                                                                                                        \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:460:8: note: expanded from macro 'GDSOFTCLASS'
+  460 |                         if (_property_can_revert(p_name)) {                                                                  \
+      |                             ^~~~~~~~~~~~~~~~~~~~
+In file included from editor\project_manager\project_dialog.cpp:31:
+editor\project_manager\project_dialog.h:46:2: error: cannot initialize object parameter of type 'const ConfirmationDialog' with an expression of type 'const ProjectDialog'
+   46 |         GDCLASS(ProjectDialog, ConfirmationDialog);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:498:2: note: expanded from macro 'GDCLASS'
+  498 |         GDSOFTCLASS(m_class, m_inherits)                                                                                                        \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:464:22: note: expanded from macro 'GDSOFTCLASS'
+  464 |                 return m_inherits::_property_can_revertv(p_name);                                                        \
+      |                                    ^~~~~~~~~~~~~~~~~~~~~
+In file included from editor\project_manager\project_dialog.cpp:31:
+editor\project_manager\project_dialog.h:46:2: error: cannot initialize object parameter of type 'const ConfirmationDialog' with an expression of type 'const ProjectDialog'
+   46 |         GDCLASS(ProjectDialog, ConfirmationDialog);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:498:2: note: expanded from macro 'GDCLASS'
+  498 |         GDSOFTCLASS(m_class, m_inherits)                                                                                                        \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:470:58: note: expanded from macro 'GDSOFTCLASS'
+  470 |                 if (m_class::_get_property_get_revert() != m_inherits::_get_property_get_revert()) {                     \
+      |                                                                        ^~~~~~~~~~~~~~~~~~~~~~~~
+In file included from editor\project_manager\project_dialog.cpp:31:
+editor\project_manager\project_dialog.h:46:2: error: cannot initialize object parameter of type 'const Object' with an expression of type 'const ProjectDialog'
+   46 |         GDCLASS(ProjectDialog, ConfirmationDialog);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:498:2: note: expanded from macro 'GDCLASS'
+  498 |         GDSOFTCLASS(m_class, m_inherits)                                                                                                        \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:471:8: note: expanded from macro 'GDSOFTCLASS'
+  471 |                         if (_property_get_revert(p_name, r_ret)) {                                                           \
+      |                             ^~~~~~~~~~~~~~~~~~~~
+In file included from editor\project_manager\project_dialog.cpp:31:
+editor\project_manager\project_dialog.h:46:2: error: cannot initialize object parameter of type 'const ConfirmationDialog' with an expression of type 'const ProjectDialog'
+   46 |         GDCLASS(ProjectDialog, ConfirmationDialog);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:498:2: note: expanded from macro 'GDCLASS'
+  498 |         GDSOFTCLASS(m_class, m_inherits)                                                                                                        \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:475:22: note: expanded from macro 'GDSOFTCLASS'
+  475 |                 return m_inherits::_property_get_revertv(p_name, r_ret);                                                 \
+      |                                    ^~~~~~~~~~~~~~~~~~~~~
+In file included from editor\project_manager\project_dialog.cpp:31:
+editor\project_manager\project_dialog.h:46:2: error: cannot initialize object parameter of type 'ConfirmationDialog' with an expression of type 'ProjectDialog'
+   46 |         GDCLASS(ProjectDialog, ConfirmationDialog);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:498:2: note: expanded from macro 'GDCLASS'
+  498 |         GDSOFTCLASS(m_class, m_inherits)                                                                                                        \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:481:15: note: expanded from macro 'GDSOFTCLASS'
+  481 |                 m_inherits::_notification_forwardv(p_notification);                                                      \
+      |                             ^~~~~~~~~~~~~~~~~~~~~~
+In file included from editor\project_manager\project_dialog.cpp:31:
+editor\project_manager\project_dialog.h:46:2: error: cannot initialize object parameter of type 'const ConfirmationDialog' with an expression of type 'ProjectDialog'
+   46 |         GDCLASS(ProjectDialog, ConfirmationDialog);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:498:2: note: expanded from macro 'GDCLASS'
+  498 |         GDSOFTCLASS(m_class, m_inherits)                                                                                                        \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\core/object/object.h:482:51: note: expanded from macro 'GDSOFTCLASS'
+  482 |                 if (m_class::_get_notification() != m_inherits::_get_notification()) {                                   \
+      |                                                                 ^~~~~~~~~~~~~~~~~
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+20 errors generated.
+scons: *** [bin\obj\editor\project_manager\project_dialog.web.editor.wasm32.o] Error 1
+scons: building terminated because of errors.
+INFO: Time elapsed: 00:00:14.53

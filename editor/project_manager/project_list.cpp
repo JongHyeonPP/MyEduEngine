@@ -769,7 +769,8 @@ void ProjectList::update_project_list() {
 	// DORO: Add CTA card as first item
 	{
 		PanelContainer *cta_card = memnew(PanelContainer);
-		cta_card->set_custom_minimum_size(Size2(320, 200) * EDSCALE); // Same as project cards
+		cta_card->set_custom_minimum_size(Size2(240, 150) * EDSCALE); // For 2x3 grid layout
+		cta_card->set_h_size_flags(Control::SIZE_SHRINK_BEGIN); // Don't expand/shrink with siblings
 
 		// CTA card styling - border effect with stylebox
 		Ref<StyleBoxFlat> cta_style;
@@ -794,7 +795,7 @@ void ProjectList::update_project_list() {
 		Label *cta_icon = memnew(Label);
 		cta_icon->set_text(U"+");
 		cta_icon->set_horizontal_alignment(HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
-		cta_icon->add_theme_font_size_override("font_size", 48 * EDSCALE); // Much larger like original
+		cta_icon->add_theme_font_size_override("font_size", 36 * EDSCALE);
 		cta_icon->add_theme_color_override("font_color", Color(0.94, 0.44, 0.40)); // #F07167
 		cta_content->add_child(cta_icon);
 
@@ -802,7 +803,7 @@ void ProjectList::update_project_list() {
 		Label *cta_text = memnew(Label);
 		cta_text->set_text(U"새 작품 만들기");
 		cta_text->set_horizontal_alignment(HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
-		cta_text->add_theme_font_size_override("font_size", 28 * EDSCALE); // Much larger like original
+		cta_text->add_theme_font_size_override("font_size", 20 * EDSCALE);
 		cta_text->add_theme_color_override("font_color", Color(0.10, 0.21, 0.36)); // #1A365D
 		cta_content->add_child(cta_text);
 
@@ -810,7 +811,7 @@ void ProjectList::update_project_list() {
 		Label *cta_desc = memnew(Label);
 		cta_desc->set_text(U"버튼을 눌러 모드를 선택하세요");
 		cta_desc->set_horizontal_alignment(HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
-		cta_desc->add_theme_font_size_override("font_size", 18 * EDSCALE); // Much larger like original
+		cta_desc->add_theme_font_size_override("font_size", 14 * EDSCALE);
 		cta_desc->add_theme_color_override("font_color", Color(0.50, 0.55, 0.62)); // Lighter gray
 		cta_content->add_child(cta_desc);
 
